@@ -21,7 +21,7 @@ export class UserService {
     FROM "user" u  
     LEFT JOIN "chat" ch ON ch."operator_id" = u."id" 
     LEFT JOIN "rating" r ON r."chat_id" = ch."id"
-    WHERE u."telegram_id" IS NOT NULL
+    -- WHERE u."telegram_id" IS NOT NULL
     GROUP BY u."id";  
 `;
   }

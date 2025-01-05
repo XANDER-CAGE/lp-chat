@@ -60,7 +60,7 @@ export class FileService {
     stream.pipe(response);
   }
 
-  async downloadToStatic(fileId: number) {
+  async downloadToStatic(fileId: string) {
     const file = await this.prisma.file.findFirst({ where: { id: fileId } });
     if (!file) throw new NotFoundException('File not found');
     const filename = `${file.id}${extname(file.name)}`;

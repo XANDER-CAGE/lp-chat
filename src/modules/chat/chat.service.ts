@@ -20,7 +20,7 @@ export class ChatService {
   ) {}
 
   async message(dto: CreateMessageDto, user: user) {
-    let chat = await this.prisma.chat.findFirst({
+    let chat: any = await this.prisma.chat.findFirst({
       where: {
         clientId: user.id,
         status: { in: ['active', 'init'] },
@@ -60,7 +60,7 @@ export class ChatService {
     return await this.getMessages(user.id, {});
   }
 
-  async chatHistory(id: number) {
+  async chatHistory(id: string) {
     return await this.prisma.chat.findMany({
       where: { id },
       include: {
@@ -186,7 +186,7 @@ export class ChatService {
     });
   }
 
-  async getMessages(clientId: number, dto: PaginationDto) {
+  async getMessages(clientId: string, dto: PaginationDto) {
     const skip = ((dto.page || 1) - 1) * (dto.limit || 50);
     const activeChat = await this.prisma.chat.findMany({
       where: { clientId, status: { in: ['active', 'init'] } },

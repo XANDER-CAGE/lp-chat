@@ -145,7 +145,7 @@ export class BotService {
   async sendReceiveConversationButton(
     operators: usersWithChats[],
     client: user,
-    chatId: number,
+    chatId: string,
     topic: string,
   ) {
     for (const operator of operators) {
@@ -195,7 +195,7 @@ export class BotService {
     }
   }
 
-  async receive(ctx: Context, chatId: number) {
+  async receive(ctx: Context, chatId: string) {
     const chat = await this.prisma.chat.findFirst({
       where: { id: chatId, status: { not: 'active' }, operatorId: null },
       include: { topic: true },
@@ -235,7 +235,7 @@ export class BotService {
     }
   }
 
-  async handleMessage(ctx: Context, fileId?: number, caption?: string) {
+  async handleMessage(ctx: Context, fileId?: string, caption?: string) {
     const operator = await this.prisma.user.findFirst({
       where: {
         telegramId: ctx.from.id.toString(),
@@ -251,7 +251,7 @@ export class BotService {
     const repliedMessageTgId =
       ctx.update?.message?.reply_to_message?.message_id;
     const tgMessageId = ctx.update?.message?.message_id;
-    let repliedMessageId: number;
+    let repliedMessageId: string;
     if (repliedMessageTgId) {
       const repliedMessage = await this.prisma.message.findFirst({
         where: { tgMsgId: repliedMessageTgId.toString() },
@@ -277,7 +277,7 @@ export class BotService {
     this.socketGateWay.sendMessageViaSocket(activeChat.id.toString(), message);
   }
 
-  async fileToAPI(ctx: Context): Promise<{ fileId: number; caption: string }> {
+  async fileToAPI(ctx: Context): Promise<{ fileId: string; caption: string }> {
     const file = await ctx.getFile();
     const caption = ctx.update.message.caption;
     const url = getFileUrl(file.file_path);
@@ -311,7 +311,7 @@ export class BotService {
     await this.fileService.deleteFromStatic(pathToStatic + filename);
   }
 
-  async messageViaBot(messageId: number) {
+  async messageViaBot(messageId: string) {
     const message = await this.prisma.message.findFirst({
       where: {
         id: messageId,
@@ -386,7 +386,7 @@ export class BotService {
       where: { telegramId: ctx.from.id.toString() },
     });
     const chat = await this.prisma.chat.findFirst({
-      where: { id: +chatId },
+      where: { id: chatId },
     });
     if (!chat || chat.status === 'active' || chat.status === 'done') {
       return ctx.reply(
@@ -395,7 +395,7 @@ export class BotService {
     }
     await this.prisma.rejectedChat.create({
       data: {
-        chatId: +chatId,
+        chatId,
         operatorId: operator.id,
       },
     });

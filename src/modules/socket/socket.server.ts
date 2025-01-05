@@ -85,7 +85,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(chatId).emit('chat', CoreApiResponse.success(message));
   }
 
-  disconnectChatMembers(chatId: number) {
+  disconnectChatMembers(chatId: string) {
     try {
       const room = this.server.sockets.adapter.rooms.get(chatId.toString());
       if (!room) throw 'Room not found';

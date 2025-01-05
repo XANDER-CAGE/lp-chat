@@ -15,7 +15,6 @@ export class CreateMessageDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsNumber()
-  @Min(1)
-  fileId?: number;
+  @IsString()
+  fileId?: string;
 }
