@@ -23,7 +23,6 @@ export class CreateRatingDto {
 
   @ApiProperty()
   @IsNotEmpty()
-  @IsNumber()
-  @Min(1)
-  chatId: number;
+  @IsString()
+  chatId: string;
 }

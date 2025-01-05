@@ -41,6 +41,6 @@ export class FileController {
 
   @Get()
   getFile(@Query('fileId') fileId: string, @Res() res: Response) {
-    return this.fileService.getFile(+fileId, res);
+    return this.fileService.getFile(fileId, res);
   }
 }

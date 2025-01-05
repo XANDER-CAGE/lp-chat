@@ -1,3 +1,7 @@
+import ObjectID from 'bson-objectid';
+
+export const objectId = () => new ObjectID().toString();
+
 export function formatMessage(dto: {
   firstname: string;
   lastname: string;

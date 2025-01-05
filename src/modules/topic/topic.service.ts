@@ -14,14 +14,14 @@ export class TopicService {
     return await this.prisma.topic.findMany();
   }
 
-  async update(id: number, updateTopicDto: UpdateTopicDto) {
+  async update(id: string, updateTopicDto: UpdateTopicDto) {
     return await this.prisma.topic.update({
       where: { id },
       data: updateTopicDto,
     });
   }
 
-  async remove(id: number) {
+  async remove(id: string) {
     return await this.prisma.topic.delete({ where: { id } });
   }
 }

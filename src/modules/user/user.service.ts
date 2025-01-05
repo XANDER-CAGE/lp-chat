@@ -26,7 +26,7 @@ export class UserService {
 `;
   }
 
-  async update(id: number, dto: UpdateUserDto) {
+  async update(id: string, dto: UpdateUserDto) {
     const operator = await this.prisma.user.findFirst({
       where: { id, telegramId: { not: null } },
     });
@@ -67,7 +67,7 @@ export class UserService {
     }
   }
 
-  async getShifts(id: number) {
+  async getShifts(id: string) {
     return await this.prisma.shift.findMany({
       where: { operatorId: id },
       orderBy: { createdAt: 'desc' },

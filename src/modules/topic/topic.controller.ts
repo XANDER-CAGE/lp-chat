@@ -30,11 +30,11 @@ export class TopicController {
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateTopicDto: UpdateTopicDto) {
-    return this.topicService.update(+id, updateTopicDto);
+    return this.topicService.update(id, updateTopicDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.topicService.remove(+id);
+    return this.topicService.remove(id);
   }
 }

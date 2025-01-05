@@ -36,7 +36,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // }
 
   async handleConnection(socket: Socket) {
-    const chatId = +socket?.handshake?.query?.chatId;
+    const chatId = socket?.handshake?.query?.chatId?.toString();
     if (!chatId) {
       const error: HttpException = new BadRequestException(
         '"chatId" in params not found',

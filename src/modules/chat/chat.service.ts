@@ -10,6 +10,7 @@ import { CreateRatingDto } from './dto/create-rating.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { ChatListDto } from './dto/chat-list.dto';
 import { RejectedChatListDto } from './dto/rejectted-chat-list.dto';
+import { objectId } from 'src/common/util/formate-message.util';
 
 @Injectable()
 export class ChatService {
@@ -157,7 +158,7 @@ export class ChatService {
       });
       if (!topic) {
         topic = await this.prisma.topic.create({
-          data: { name: 'other', description: 'other' },
+          data: { id: objectId(), name: 'other', description: 'other' },
         });
       }
       dto.topicId = topic.id;
@@ -170,8 +171,14 @@ export class ChatService {
       include: { messages: true },
     });
     if (chat) return chat;
+
     return this.prisma.chat.create({
-      data: { status: 'init', clientId: user.id, topicId: dto.topicId },
+      data: {
+        id: objectId(),
+        status: 'init',
+        clientId: user.id,
+        topicId: dto.topicId,
+      },
       include: { messages: true },
     });
   }

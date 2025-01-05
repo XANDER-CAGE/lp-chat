@@ -46,7 +46,7 @@ export class FileService {
     });
   }
 
-  async getFile(fileId: number, response: Response) {
+  async getFile(fileId: string, response: Response) {
     const file = await this.prisma.file.findFirst({ where: { id: fileId } });
     if (!file) throw new NotFoundException('File not found');
     const stream = await this.minio.client.getObject(
@@ -75,7 +75,7 @@ export class FileService {
     unlinkSync(path);
   }
 
-  async getUrl(fileId: number) {
+  async getUrl(fileId: string) {
     const file = await this.prisma.file.findFirst({ where: { id: fileId } });
     if (!file) throw new NotFoundException('File not found');
     const filename = `${file.id}${extname(file.name)}`;
