@@ -31,7 +31,7 @@ import { RejectedChatListDto } from './dto/rejectted-chat-list.dto';
 
 @ApiTags('Chat')
 @Controller('chat')
-@ApiBearerAuth()
+@ApiBearerAuth('authorization')
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 

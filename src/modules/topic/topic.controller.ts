@@ -14,7 +14,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Topic')
 @Controller('topic')
-@ApiBearerAuth()
+@ApiBearerAuth('authorization')
 export class TopicController {
   constructor(private readonly topicService: TopicService) {}
 

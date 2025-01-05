@@ -9,9 +9,8 @@ import { Roles } from 'src/common/decorator/roles.decorator';
 import { Role } from 'src/common/enum/role.enum';
 
 @ApiTags('User')
-@ApiBearerAuth()
+@ApiBearerAuth('authorization')
 @Controller('user')
-@ApiBearerAuth()
 export class UserController {
   constructor(private readonly userService: UserService) {}
 

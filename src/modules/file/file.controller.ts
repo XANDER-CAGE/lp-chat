@@ -14,7 +14,7 @@ import { BufferedFile } from 'src/common/interface/buffered-file.interface';
 import { Response } from 'express';
 import { CoreApiResponse } from 'src/common/response-class/core-api.response';
 
-@ApiBearerAuth()
+@ApiBearerAuth('authorization')
 @ApiTags('Files')
 @Controller('files')
 export class FileController {
