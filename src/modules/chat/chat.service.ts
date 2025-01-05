@@ -28,6 +28,7 @@ export class ChatService {
       },
       include: { messages: true },
     });
+
     if (!chat) {
       chat = await this.chatCreate({}, user);
     }
@@ -38,7 +39,7 @@ export class ChatService {
       if (!file) throw new NotFoundException('File not found');
     }
     const message = await this.prisma.message.create({
-      data: <any>{ ...dto, authorId: user.id, chatId: chat.id },
+      data: <any>{ ...dto, authorId: user.id, chatId: chat.id, id: objectId() },
       include: { chat: true },
     });
     if (chat.status == 'init') {
