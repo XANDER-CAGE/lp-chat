@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+model file {
+  id           Int       @id @default(autoincrement()) @map("id")
+  bucketName   String    @map("bucket_name")
+  type         String    @map("type")
+  name         String    @map("name")
+  size         Int       @map("size")
+  createdAt    DateTime? @default(now()) @db.Timestamp(6) @map("created_at")
+  message      message?  
+
+  @@map("file")
+}
+
+model message {
+  id               Int       @id @default(autoincrement()) @map("id")
+  content          String?   @map("content")
+  fileId           Int?      @unique @map("file_id")
+  file             file?     @relation(fields: [fileId], references: [id]) 
+  chatId           Int       @map("chat_id")
+  chat             chat      @relation(fields: [chatId], references: [id]) 
+  repliedMessageId Int?      @map("replied_message_id")
+  tgMsgId          String?   @map("tg_msg_id")
+  authorId         Int       @map("author_id")
+  author           user      @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction) 
+  createdAt        DateTime? @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt        DateTime? @updatedAt @map("updated_at")
+  repliedMessage   message?  @relation("messageTomessage", fields: [repliedMessageId], references: [id], onDelete: NoAction, onUpdate: NoAction) 
+  repliedMessages    message[] @relation("messageTomessage") 
+
+  @@map("message")
+}
+
+model rejectedChat {
+  id         Int       @id @default(autoincrement()) @map("id")
+  chatId     Int       @map("chat_id")
+  chat       chat      @relation(fields: [chatId], references: [id]) 
+  operatorId Int       @map("operator_id")
+  operator   user      @relation(fields: [operatorId], references: [id]) 
+  createdAt  DateTime? @default(now()) @db.Timestamp(6) @map("created_at")
+
+  @@map("rejected_chat")
+}
+
+model rating {
+  id        Int       @id @default(autoincrement()) @map("id")
+  rate      Int       @map("rate")
+  message   String    @map("message")
+  chatId    Int?      @map("chat_id")
+  clientId  Int?      @map("client_id")
+  createdAt DateTime? @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+  chat      chat?     @relation(fields: [chatId], references: [id], onDelete: NoAction, onUpdate: NoAction) 
+  client    user?     @relation(fields: [clientId], references: [id], onDelete: NoAction, onUpdate: NoAction) 
+
+  @@map("rating")
+}
+
+model user {
+  id               Int               @id @default(autoincrement()) @map("id")
+  approvedAt       DateTime?         @map("approved_at")
+  blockedAt        DateTime?         @map("blocked_at")
+  createdAt        DateTime?         @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt        DateTime?         @updatedAt @map("updated_at")
+  shiftStatus      shiftStatus?      @map("shift_status")
+  messages         message[]         
+  telegramId       String?           @unique @map("telegram_id")
+  username         String?           @map("username")
+  kcUserId         String?           @unique @map("kc_user_id")
+  email            String?           @map("email")
+  lastname         String?           @map("lastname")
+  firstname        String?           @map("firstname")
+  phone            String?           @map("phone")
+  ratings          rating[]          @ignore 
+  shift            shift[]           
+  userChats        chat[]            @relation("clientChats")
+  operatorChats    chat[]            @relation("operatorChats")
+  messagesToDelete messageToDelete[] 
+  rejectedChats    rejectedChat[]    
+
+  @@map("user")
+}
+
+model chat {
+  id                Int              @id @default(autoincrement()) @map("id")
+  topicId           Int              @map("topic_id")
+  topic             topic            @relation(fields: [topicId], references: [id])
+  status            chatstatus       @map("status")
+  clientId          Int              @map("client_id")
+  client            user             @relation("clientChats", fields: [clientId], references: [id])
+  operatorId        Int?             @map("operator_id")
+  operator          user?            @relation("operatorChats", fields: [operatorId], references: [id])
+  createdAt         DateTime?        @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt         DateTime?        @updatedAt @map("updated_at")
+  messages          message[]        
+  rating            rating[]         
+  rejectedOperators rejectedChat[]   
+  messagesToDelete  messageToDelete[] @ignore 
+
+  @@map("chat")
+}
+
+model topic {
+  id          Int       @id @default(autoincrement()) @map("id")
+  name        String    @map("name")
+  description String?   @map("description")
+  createdAt   DateTime? @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt   DateTime? @updatedAt @map("updated_at")
+  chats       chat[]    
+
+  @@map("topic")
+}
+
+model shift {
+  id         Int         @id @default(autoincrement()) @map("id")
+  status     shiftStatus @map("status")
+  operatorId Int         @map("operator_id")
+  operator   user        @relation(fields: [operatorId], references: [id])
+  createdAt  DateTime?   @default(now()) @db.Timestamp(6) @map("created_at")
+
+  @@map("shift")
+}
+
+model messageToDelete {
+  id          Int       @id @default(autoincrement()) @map("id")
+  tgMessageId String    @map("tg_message_id")
+  operatorId  Int       @map("operator_id")
+  operator    user      @relation(fields: [operatorId], references: [id])
+  chatId      Int       @map("chat_id")
+  chat        chat      @relation(fields: [chatId], references: [id])
+  createdAt   DateTime? @default(now()) @db.Timestamp(6) @map("created_at")
+
+  @@map("message_to_delete")
+}
+
+enum chatstatus {
+  active
+  done
+  underInvestigation
+  init
+}
+
+enum shiftStatus {
+  active
+  inactive
+}
