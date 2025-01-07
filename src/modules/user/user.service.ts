@@ -1,18 +1,20 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '../prisma/prisma.service';
-import { KEYCLOAK_INSTANCE } from 'nest-keycloak-connect';
-import KeycloakConnect from 'keycloak-connect';
-import { UserFromKeycloak } from 'src/common/type/userFromKeycloak.type';
 import { user } from '@prisma/client';
 import { CoreApiResponse } from 'src/common/response-class/core-api.response';
+import { env } from 'process';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(KEYCLOAK_INSTANCE)
-    private readonly keycloak: KeycloakConnect.Keycloak,
+    private jwtService: JwtService,
   ) {}
 
   async findAll() {
@@ -41,29 +43,52 @@ export class UserService {
   }
 
   async validate(token: any) {
-    const gm = this.keycloak.grantManager;
     try {
-      const grant: any = await gm.createGrant({ access_token: token });
-      if (grant.isExpired()) throw new Error();
-      const content = grant.access_token.content;
+      const content: any = await this.verifyTokenAndSetUser(token);
 
       const dataFromJwt = {
         email: content.email,
-        firstname: content.given_name,
-        lastname: content.family_name,
-        username: content.preferred_username,
-        kcUserId: content.sub,
+        phone: content.phone_number,
+        firstname: content.first_name,
+        lastname: content.last_name,
+        username: content?.username,
+        userId: content?.userType === 'user' ? content?.id : null,
+        doctorId: content?.userType === 'doctor' ? content?.id : null,
       };
 
+      if (!dataFromJwt.userId && !dataFromJwt.doctorId)
+        throw new NotFoundException('User not found');
+
       const user = await this.prisma.user.upsert({
-        where: { kcUserId: content.sub },
+        where: { userId: dataFromJwt?.userId, doctorId: dataFromJwt?.doctorId },
         create: dataFromJwt,
         update: dataFromJwt,
       });
-      const data: user & UserFromKeycloak = { ...content, ...user };
+
+      const data: user = { ...content, ...user };
       return CoreApiResponse.success(data);
     } catch (error) {
       return CoreApiResponse.error(error);
+    }
+  }
+
+  private async verifyTokenAndSetUser(
+    token: string,
+  ): Promise<'user' | 'doctor'> {
+    try {
+      const payload = await this.jwtService.verifyAsync(token, {
+        secret: env.JWT_SECRET,
+      });
+      return { ...payload, userType: 'user' };
+    } catch {
+      try {
+        const payload = await this.jwtService.verifyAsync(token, {
+          secret: env.JWT_SECRET_DOCTOR,
+        });
+        return { ...payload, userType: 'doctor' };
+      } catch {
+        throw new UnauthorizedException('Invalid token');
+      }
     }
   }
 

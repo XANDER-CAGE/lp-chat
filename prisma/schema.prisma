@@ -128,8 +128,8 @@ model user {
   lastname  String? @map("lastname")
 
   // User and doctor marge user Model (this logic very important)
-  userId   String? @map("user_id") @db.VarChar(24)
-  doctorId String? @map("doctor_id") @db.VarChar(24)
+  userId   String? @unique @map("user_id") @db.VarChar(24)
+  doctorId String? @unique @map("doctor_id") @db.VarChar(24)
 
   isDeleted Boolean   @default(false) @map("is_deleted")
   // Timestamps

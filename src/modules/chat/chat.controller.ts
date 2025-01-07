@@ -24,9 +24,14 @@ import { RolesGuard } from 'src/common/guard/roles.guard';
 import { Role } from 'src/common/enum/role.enum';
 import { ChatListDto } from './dto/chat-list.dto';
 import { RejectedChatListDto } from './dto/rejectted-chat-list.dto';
+import { Cron } from '@nestjs/schedule';
+import { findOperatorsCronId } from 'src/common/var/index.var';
+import { env } from 'src/common/config/env.config';
+import { AuthGuard } from 'src/common/guard/auth.guard';
 
 @ApiTags('Chat')
 @Controller('chat')
+@UseGuards(AuthGuard)
 @ApiBearerAuth('authorization')
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
@@ -71,7 +76,7 @@ export class ChatController {
     return CoreApiResponse.success(data);
   }
 
-  // @Cron(env.FIND_FREE_OPERATORS_CRON_PATTERN, { name: findOperatorsCronId })
+  @Cron(env.FIND_FREE_OPERATORS_CRON_PATTERN, { name: findOperatorsCronId })
   async handleCron() {
     return this.chatService.findOperatorsCron();
   }

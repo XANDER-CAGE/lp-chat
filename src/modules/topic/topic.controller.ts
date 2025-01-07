@@ -6,15 +6,18 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { TopicService } from './topic.service';
 import { CreateTopicDto } from './dto/create-topic.dto';
 import { UpdateTopicDto } from './dto/update-topic.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { AuthGuard } from 'src/common/guard/auth.guard';
 
 @ApiTags('Topic')
 @Controller('topic')
 @ApiBearerAuth('authorization')
+@UseGuards(AuthGuard)
 export class TopicController {
   constructor(private readonly topicService: TopicService) {}
 

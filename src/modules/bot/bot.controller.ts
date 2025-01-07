@@ -9,12 +9,10 @@ import {
   CallbackQuery,
 } from '@grammyjs/nestjs';
 import { BotService } from './bot.service';
-import { Unprotected } from 'nest-keycloak-connect';
-import { UseFilters } from '@nestjs/common';
-import { BotExceptionFilter } from 'src/common/filter/bot.exception-filter';
+// import { UseFilters } from '@nestjs/common';
+// import { BotExceptionFilter } from 'src/common/filter/bot.exception-filter';
 
-@Unprotected()
-@UseFilters(BotExceptionFilter)
+// @UseFilters(BotExceptionFilter)
 @Update()
 export class BotController {
   constructor(private readonly botService: BotService) {}

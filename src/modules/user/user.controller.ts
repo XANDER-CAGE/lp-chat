@@ -7,10 +7,12 @@ import { CoreApiResponse } from 'src/common/response-class/core-api.response';
 import { RolesGuard } from 'src/common/guard/roles.guard';
 import { Roles } from 'src/common/decorator/roles.decorator';
 import { Role } from 'src/common/enum/role.enum';
+import { AuthGuard } from 'src/common/guard/auth.guard';
 
 @ApiTags('User')
 @ApiBearerAuth('authorization')
 @Controller('user')
+@UseGuards(AuthGuard)
 export class UserController {
   constructor(private readonly userService: UserService) {}
 

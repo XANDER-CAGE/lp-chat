@@ -6,6 +6,7 @@ import {
   Get,
   Query,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { FileService } from './file.service';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
@@ -13,10 +14,12 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { BufferedFile } from 'src/common/interface/buffered-file.interface';
 import { Response } from 'express';
 import { CoreApiResponse } from 'src/common/response-class/core-api.response';
+import { AuthGuard } from 'src/common/guard/auth.guard';
 
 @ApiBearerAuth('authorization')
 @ApiTags('Files')
 @Controller('files')
+@UseGuards(AuthGuard)
 export class FileController {
   constructor(private readonly fileService: FileService) {}
 

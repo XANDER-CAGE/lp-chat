@@ -45,6 +45,7 @@ export class BotService {
         approvedAt: { not: null },
       },
     });
+
     if (!operator) {
       return ctx.reply(
         'Please /register and(or) wait administrator to approve',

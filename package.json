@@ -45,7 +45,6 @@
     "jwks-rsa": "^3.1.0",
     "keycloak-connect": "^26.0.7",
     "keycloak-verify": "^0.4.0",
-    "nest-keycloak-connect": "^1.10.1",
     "nestjs-minio-client": "^2.2.0",
     "prisma": "^6.1.0",
     "reflect-metadata": "^0.2.2",
