@@ -11,15 +11,11 @@ import {
 import { ChatService } from './chat.service';
 import { CreateChatDto } from './dto/chat.dto';
 import { User } from 'src/common/decorator/user.decorator';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { user } from '@prisma/client';
 import { IdDto } from 'src/common/dto/id.dto';
-import { Cron } from '@nestjs/schedule';
-import { findOperatorsCronId } from 'src/common/var/index.var';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CreateMessageDto } from './dto/message.dto';
 import { CreateRatingDto } from './dto/create-rating.dto';
-import { env } from 'src/common/config/env.config';
 import { IMyReq } from 'src/common/interface/my-req.interface';
 import { CoreApiResponse } from 'src/common/response-class/core-api.response';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
@@ -75,7 +71,7 @@ export class ChatController {
     return CoreApiResponse.success(data);
   }
 
-  @Cron(env.FIND_FREE_OPERATORS_CRON_PATTERN, { name: findOperatorsCronId })
+  // @Cron(env.FIND_FREE_OPERATORS_CRON_PATTERN, { name: findOperatorsCronId })
   async handleCron() {
     return this.chatService.findOperatorsCron();
   }
