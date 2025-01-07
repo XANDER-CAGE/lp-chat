@@ -1,22 +1,35 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  schemas  = ["auth", "chat", "doctor"]
 }
 
 model file {
-  id         String    @id @default(uuid()) @db.VarChar(24)
-  bucketName String    @map("bucket_name")
-  type       String    @map("type")
-  name       String    @map("name")
-  size       Int       @map("size")
-  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  id         String   @id @default(uuid()) @db.VarChar(24)
+  bucketName String   @map("bucket_name")
+  type       String   @map("type")
+  name       String   @map("name")
+  size       Int      @map("size")
   message    message?
 
+  isDeleted Boolean @default(false) @map("is_deleted")
+
+  // Timestamps
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+  // User IDs
+  deletedBy String?   @map("deleted_by") @db.VarChar(24)
+  createdBy String?   @map("created_by") @db.VarChar(24)
+  updatedBy String?   @map("updated_by") @db.VarChar(24)
+
   @@map("file")
+  @@schema("chat")
 }
 
 model message {
@@ -30,53 +43,81 @@ model message {
   tgMsgId          String?   @map("tg_msg_id")
   authorId         String    @map("author_id")
   author           user      @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt        DateTime? @updatedAt @map("updated_at")
   repliedMessage   message?  @relation("messageTomessage", fields: [repliedMessageId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   repliedMessages  message[] @relation("messageTomessage")
 
+  isDeleted Boolean   @default(false) @map("is_deleted")
+  // Timestamps
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+  // User IDs
+  deletedBy String?   @map("deleted_by") @db.VarChar(24)
+  createdBy String?   @map("created_by") @db.VarChar(24)
+  updatedBy String?   @map("updated_by") @db.VarChar(24)
+
+  // User and doctor marge user Model (this logic very important)
+  userId   String @map("user_id") @db.VarChar(24)
+  doctorId String @map("doctor_id") @db.VarChar(24)
+
   @@map("message")
+  @@schema("chat")
 }
 
 model rejectedChat {
-  id         String    @id @default(uuid()) @db.VarChar(24)
-  chatId     String    @map("chat_id")
-  chat       chat      @relation(fields: [chatId], references: [id])
-  operatorId String    @map("operator_id")
-  operator   user      @relation(fields: [operatorId], references: [id])
-  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  id         String @id @default(uuid()) @db.VarChar(24)
+  chatId     String @map("chat_id")
+  chat       chat   @relation(fields: [chatId], references: [id])
+  operatorId String @map("operator_id")
+  operator   user   @relation(fields: [operatorId], references: [id])
+
+  isDeleted Boolean   @default(false) @map("is_deleted")
+  // Timestamps
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+  // User IDs
+  deletedBy String?   @map("deleted_by") @db.VarChar(24)
+  createdBy String?   @map("created_by") @db.VarChar(24)
+  updatedBy String?   @map("updated_by") @db.VarChar(24)
 
   @@map("rejected_chat")
+  @@schema("chat")
 }
 
 model rating {
-  id        String    @id @default(uuid()) @db.VarChar(24)
-  rate      Int       @map("rate")
-  message   String    @map("message")
-  chatId    String?   @map("chat_id")
-  clientId  String?   @map("client_id")
-  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt DateTime? @updatedAt @map("updated_at")
-  chat      chat?     @relation(fields: [chatId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  client    user?     @relation(fields: [clientId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id       String  @id @default(uuid()) @db.VarChar(24)
+  rate     Int     @map("rate")
+  message  String  @map("message")
+  chatId   String? @map("chat_id")
+  clientId String? @map("client_id")
+  chat     chat?   @relation(fields: [chatId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  client   user?   @relation(fields: [clientId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  isDeleted Boolean   @default(false) @map("is_deleted")
+  // Timestamps
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+  // User IDs
+  deletedBy String?   @map("deleted_by") @db.VarChar(24)
+  createdBy String?   @map("created_by") @db.VarChar(24)
+  updatedBy String?   @map("updated_by") @db.VarChar(24)
 
   @@map("rating")
+  @@schema("chat")
 }
 
 model user {
   id               String            @id @default(uuid()) @db.VarChar(24)
   approvedAt       DateTime?         @map("approved_at")
   blockedAt        DateTime?         @map("blocked_at")
-  createdAt        DateTime?         @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt        DateTime?         @updatedAt @map("updated_at")
   shiftStatus      shiftStatus?      @map("shift_status")
   messages         message[]
   telegramId       String?           @unique @map("telegram_id")
   username         String?           @map("username")
   kcUserId         String?           @unique @map("kc_user_id")
   email            String?           @map("email")
-  lastname         String?           @map("lastname")
-  firstname        String?           @map("firstname")
   phone            String?           @map("phone")
   ratings          rating[]          @ignore
   shift            shift[]
@@ -85,7 +126,18 @@ model user {
   messagesToDelete messageToDelete[]
   rejectedChats    rejectedChat[]
 
+  isDeleted Boolean   @default(false) @map("is_deleted")
+  // Timestamps
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+  // User IDs
+  deletedBy String?   @map("deleted_by") @db.VarChar(24)
+  createdBy String?   @map("created_by") @db.VarChar(24)
+  updatedBy String?   @map("updated_by") @db.VarChar(24)
+
   @@map("user")
+  @@schema("chat")
 }
 
 model chat {
@@ -97,25 +149,43 @@ model chat {
   client            user              @relation("clientChats", fields: [clientId], references: [id])
   operatorId        String?           @map("operator_id")
   operator          user?             @relation("operatorChats", fields: [operatorId], references: [id])
-  createdAt         DateTime?         @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt         DateTime?         @updatedAt @map("updated_at")
   messages          message[]
   rating            rating[]
   rejectedOperators rejectedChat[]
   messagesToDelete  messageToDelete[] @ignore
 
+  isDeleted Boolean   @default(false) @map("is_deleted")
+  // Timestamps
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+  // User IDs
+  deletedBy String?   @map("deleted_by") @db.VarChar(24)
+  createdBy String?   @map("created_by") @db.VarChar(24)
+  updatedBy String?   @map("updated_by") @db.VarChar(24)
+
   @@map("chat")
+  @@schema("chat")
 }
 
 model topic {
-  id          String    @id @default(uuid()) @db.VarChar(24)
-  name        String    @map("name")
-  description String?   @map("description")
-  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt   DateTime? @updatedAt @map("updated_at")
+  id          String  @id @default(uuid()) @db.VarChar(24)
+  name        String  @map("name")
+  description String? @map("description")
   chats       chat[]
 
+  isDeleted Boolean   @default(false) @map("is_deleted")
+  // Timestamps
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+  // User IDs
+  deletedBy String?   @map("deleted_by") @db.VarChar(24)
+  createdBy String?   @map("created_by") @db.VarChar(24)
+  updatedBy String?   @map("updated_by") @db.VarChar(24)
+
   @@map("topic")
+  @@schema("chat")
 }
 
 model shift {
@@ -123,21 +193,41 @@ model shift {
   status     shiftStatus @map("status")
   operatorId String      @map("operator_id")
   operator   user        @relation(fields: [operatorId], references: [id])
-  createdAt  DateTime?   @default(now()) @map("created_at") @db.Timestamp(6)
+
+  isDeleted Boolean   @default(false) @map("is_deleted")
+  // Timestamps
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+  // User IDs
+  deletedBy String?   @map("deleted_by") @db.VarChar(24)
+  createdBy String?   @map("created_by") @db.VarChar(24)
+  updatedBy String?   @map("updated_by") @db.VarChar(24)
 
   @@map("shift")
+  @@schema("chat")
 }
 
 model messageToDelete {
-  id          String    @id @default(uuid()) @db.VarChar(24)
-  tgMessageId String    @map("tg_message_id")
-  operatorId  String    @map("operator_id")
-  operator    user      @relation(fields: [operatorId], references: [id])
-  chatId      String    @map("chat_id")
-  chat        chat      @relation(fields: [chatId], references: [id])
-  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  id          String @id @default(uuid()) @db.VarChar(24)
+  tgMessageId String @map("tg_message_id")
+  operatorId  String @map("operator_id")
+  operator    user   @relation(fields: [operatorId], references: [id])
+  chatId      String @map("chat_id")
+  chat        chat   @relation(fields: [chatId], references: [id])
+
+  isDeleted Boolean   @default(false) @map("is_deleted")
+  // Timestamps
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+  // User IDs
+  deletedBy String?   @map("deleted_by") @db.VarChar(24)
+  createdBy String?   @map("created_by") @db.VarChar(24)
+  updatedBy String?   @map("updated_by") @db.VarChar(24)
 
   @@map("message_to_delete")
+  @@schema("chat")
 }
 
 enum chatstatus {
@@ -145,9 +235,13 @@ enum chatstatus {
   done
   underInvestigation
   init
+
+  @@schema("chat")
 }
 
 enum shiftStatus {
   active
   inactive
+
+  @@schema("chat")
 }
