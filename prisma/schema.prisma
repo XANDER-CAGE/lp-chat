@@ -45,6 +45,8 @@ model message {
   author           user      @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   repliedMessage   message?  @relation("messageTomessage", fields: [repliedMessageId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   repliedMessages  message[] @relation("messageTomessage")
+  firstname        String?   @map("firstname")
+  lastname         String?   @map("lastname")
 
   isDeleted Boolean   @default(false) @map("is_deleted")
   // Timestamps
@@ -125,6 +127,9 @@ model user {
   operatorChats    chat[]            @relation("operatorChats")
   messagesToDelete messageToDelete[]
   rejectedChats    rejectedChat[]
+
+  firstname String? @map("firstname")
+  lastname  String? @map("lastname")
 
   isDeleted Boolean   @default(false) @map("is_deleted")
   // Timestamps

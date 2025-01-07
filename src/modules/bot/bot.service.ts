@@ -129,8 +129,8 @@ export class BotService {
     }
     await this.prisma.user.create({
       data: {
-        firstname: ctx.from.first_name,
-        lastname: ctx.from.last_name,
+        // firstname: ctx.from.first_name,
+        // lastname: ctx.from.last_name,
         phone: contact.phone_number,
         telegramId: ctx.from.id.toString(),
         username: ctx.from.username,
@@ -167,7 +167,7 @@ export class BotService {
       }
       const data = await this.bot.api.sendMessage(
         operator.telegramId,
-        `From: *${client.firstname} ${client.lastname}*\nTopic: _${topic}_
+        `From: *${'Firstname'} ${'Lastname'}*\nTopic: _${topic}_
         `,
         {
           reply_markup: {
