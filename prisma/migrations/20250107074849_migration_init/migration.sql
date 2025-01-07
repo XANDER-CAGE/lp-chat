@@ -49,8 +49,6 @@ CREATE TABLE "chat"."message" (
     "deleted_by" VARCHAR(24),
     "created_by" VARCHAR(24),
     "updated_by" VARCHAR(24),
-    "user_id" VARCHAR(24) NOT NULL,
-    "doctor_id" VARCHAR(24) NOT NULL,
 
     CONSTRAINT "message_pkey" PRIMARY KEY ("id")
 );
@@ -102,6 +100,8 @@ CREATE TABLE "chat"."user" (
     "phone" TEXT,
     "firstname" TEXT,
     "lastname" TEXT,
+    "user_id" VARCHAR(24),
+    "doctor_id" VARCHAR(24),
     "is_deleted" BOOLEAN NOT NULL DEFAULT false,
     "deleted_at" TIMESTAMPTZ,
     "created_at" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
