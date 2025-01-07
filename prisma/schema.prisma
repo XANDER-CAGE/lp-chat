@@ -45,8 +45,6 @@ model message {
   author           user      @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   repliedMessage   message?  @relation("messageTomessage", fields: [repliedMessageId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   repliedMessages  message[] @relation("messageTomessage")
-  firstname        String?   @map("firstname")
-  lastname         String?   @map("lastname")
 
   isDeleted Boolean   @default(false) @map("is_deleted")
   // Timestamps
@@ -57,10 +55,6 @@ model message {
   deletedBy String?   @map("deleted_by") @db.VarChar(24)
   createdBy String?   @map("created_by") @db.VarChar(24)
   updatedBy String?   @map("updated_by") @db.VarChar(24)
-
-  // User and doctor marge user Model (this logic very important)
-  userId   String @map("user_id") @db.VarChar(24)
-  doctorId String @map("doctor_id") @db.VarChar(24)
 
   @@map("message")
   @@schema("chat")
@@ -130,6 +124,10 @@ model user {
 
   firstname String? @map("firstname")
   lastname  String? @map("lastname")
+
+  // User and doctor marge user Model (this logic very important)
+  userId   String? @map("user_id") @db.VarChar(24)
+  doctorId String? @map("doctor_id") @db.VarChar(24)
 
   isDeleted Boolean   @default(false) @map("is_deleted")
   // Timestamps
