@@ -128,6 +128,7 @@ export class ChatService {
       },
       include: { rejectedChats: true },
     });
+
     const chats = await this.prisma.chat.findMany({
       where: { status: 'init', messages: { some: {} } },
       include: { client: true, topic: true },
