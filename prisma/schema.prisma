@@ -10,7 +10,7 @@ datasource db {
 }
 
 model file {
-  id         String   @id @default(uuid()) @db.VarChar(24)
+  id         String   @id @default(dbgenerated("generate_object_id()")) @db.VarChar(24)
   bucketName String   @map("bucket_name")
   type       String   @map("type")
   name       String   @map("name")
@@ -33,7 +33,7 @@ model file {
 }
 
 model message {
-  id               String    @id @default(uuid()) @db.VarChar(24)
+  id               String    @id @default(dbgenerated("generate_object_id()")) @db.VarChar(24)
   content          String?   @map("content")
   fileId           String?   @unique @map("file_id")
   file             file?     @relation(fields: [fileId], references: [id])
@@ -65,7 +65,7 @@ model message {
 }
 
 model rejectedChat {
-  id         String @id @default(uuid()) @db.VarChar(24)
+  id         String @id @default(dbgenerated("generate_object_id()")) @db.VarChar(24)
   chatId     String @map("chat_id")
   chat       chat   @relation(fields: [chatId], references: [id])
   operatorId String @map("operator_id")
@@ -86,7 +86,7 @@ model rejectedChat {
 }
 
 model rating {
-  id       String  @id @default(uuid()) @db.VarChar(24)
+  id       String  @id @default(dbgenerated("generate_object_id()")) @db.VarChar(24)
   rate     Int     @map("rate")
   message  String  @map("message")
   chatId   String? @map("chat_id")
@@ -109,7 +109,7 @@ model rating {
 }
 
 model user {
-  id               String            @id @default(uuid()) @db.VarChar(24)
+  id               String            @id @default(dbgenerated("generate_object_id()")) @db.VarChar(24)
   approvedAt       DateTime?         @map("approved_at")
   blockedAt        DateTime?         @map("blocked_at")
   shiftStatus      shiftStatus?      @map("shift_status")
@@ -141,7 +141,7 @@ model user {
 }
 
 model chat {
-  id                String            @id @default(uuid()) @db.VarChar(24)
+  id                String            @id @default(dbgenerated("generate_object_id()")) @db.VarChar(24)
   topicId           String            @map("topic_id")
   topic             topic             @relation(fields: [topicId], references: [id])
   status            chatstatus        @map("status")
@@ -169,7 +169,7 @@ model chat {
 }
 
 model topic {
-  id          String  @id @default(uuid()) @db.VarChar(24)
+  id          String  @id @default(dbgenerated("generate_object_id()")) @db.VarChar(24)
   name        String  @map("name")
   description String? @map("description")
   chats       chat[]
@@ -189,7 +189,7 @@ model topic {
 }
 
 model shift {
-  id         String      @id @default(uuid()) @db.VarChar(24)
+  id         String      @id @default(dbgenerated("generate_object_id()")) @db.VarChar(24)
   status     shiftStatus @map("status")
   operatorId String      @map("operator_id")
   operator   user        @relation(fields: [operatorId], references: [id])
@@ -209,7 +209,7 @@ model shift {
 }
 
 model messageToDelete {
-  id          String @id @default(uuid()) @db.VarChar(24)
+  id          String @id @default(dbgenerated("generate_object_id()")) @db.VarChar(24)
   tgMessageId String @map("tg_message_id")
   operatorId  String @map("operator_id")
   operator    user   @relation(fields: [operatorId], references: [id])
