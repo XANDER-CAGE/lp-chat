@@ -77,7 +77,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           
       - name: Build and push to Prod
-        if: github.ref_name == 'master'
+        if: github.ref_name == 'main'
         uses: docker/build-push-action@v3
         with:
           context: .
