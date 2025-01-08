@@ -120,7 +120,12 @@ export class BotService {
 
   async contact(ctx: Context, contact: any) {
     const operator = await this.prisma.user.findFirst({
-      where: { telegramId: ctx.from.id.toString() },
+      where: {
+        OR: [
+          { telegramId: ctx.from.id.toString() },
+          { phone: contact.phone_number },
+        ],
+      },
     });
     if (operator) {
       return ctx.reply(

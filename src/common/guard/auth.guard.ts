@@ -24,10 +24,10 @@ export class AuthGuard implements CanActivate {
 
     try {
       // Verify token and determine user type
-      const userType = await this.verifyTokenAndSetUser(request, token);
+      const user = await this.verifyTokenAndSetUser(request, token);
 
       // Ensure profile exists for the user/doctor
-      await this.ensureProfileExists(request, userType);
+      await this.ensureProfileExists(request, user);
 
       request['token'] = token;
       return true;
@@ -48,18 +48,18 @@ export class AuthGuard implements CanActivate {
       });
 
       request['user'] = { ...payload, userType: 'user' };
-      return 'user';
+      return request['user'];
     } catch {
       const payload = await this.jwtService.verifyAsync(token, {
         secret: env.JWT_SECRET_DOCTOR,
       });
       request['user'] = { ...payload, userType: 'doctor' };
-      return 'doctor';
+      return request['user'];
     }
   }
 
-  private async ensureProfileExists(request: any, userType: 'user' | 'doctor') {
-    const { id } = request['user'];
+  private async ensureProfileExists(request: any, user: any) {
+    const { id, userType, fist_name, last_name, phone_number } = user;
     const profileKey = userType === 'user' ? 'userId' : 'doctorId';
 
     let profile = await this.prisma.user.findFirst({
@@ -75,6 +75,9 @@ export class AuthGuard implements CanActivate {
           id,
           [profileKey]: id,
           createdBy: id,
+          firstname: fist_name,
+          lastname: last_name,
+          phone: phone_number,
         },
       });
     }

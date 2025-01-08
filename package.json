@@ -20,7 +20,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "migration:generate": "npx prisma migrate dev --name migration_init",
     "migration:latest": "npx prisma migrate deploy",
-    "migration:rollback": "npx prisma migrate reset --force"
+    "migration:rollback": "npx prisma migrate dev"
   },
   "dependencies": {
     "@grammyjs/nestjs": "^0.3.4",
