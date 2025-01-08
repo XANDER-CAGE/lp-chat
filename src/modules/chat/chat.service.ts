@@ -29,9 +29,22 @@ export class ChatService {
       include: { messages: true },
     });
 
-    if (!chat) {
-      chat = await this.chatCreate({}, user);
+    if (dto.consultationId) {
+      const consultation = await this.prisma.consultation.findFirst({
+        where: { id: dto.consultationId, userId: user.id },
+      });
+      if (!consultation) throw new NotFoundException('Consultation not found');
     }
+
+    if (!chat) {
+      chat = await this.chatCreate(
+        {
+          consultationId: dto.consultationId,
+        },
+        user,
+      );
+    }
+
     if (dto.fileId) {
       const file = await this.prisma.file.findFirst({
         where: { id: dto.fileId },
@@ -165,9 +178,18 @@ export class ChatService {
       }
       dto.topicId = topic.id;
     }
+
+    if (dto.consultationId) {
+      const consultation = await this.prisma.consultation.findFirst({
+        where: { id: dto.consultationId, userId: user.id },
+      });
+      if (!consultation) throw new NotFoundException('Consultation not found');
+    }
+
     const chat = await this.prisma.chat.findFirst({
       where: {
         clientId: user.id,
+        consultationId: dto.consultationId,
         status: { in: ['active', 'init'] },
       },
       include: { messages: true },
@@ -180,6 +202,7 @@ export class ChatService {
         status: 'init',
         clientId: user.id,
         topicId: dto.topicId,
+        consultationId: dto.consultationId,
       },
       include: { messages: true },
     });

@@ -246,12 +246,9 @@ export class BotService {
     });
     const editedMsgText = `Chat started with *${firstname} ${lastname}*`;
     await ctx.editMessageText(editedMsgText, { parse_mode: 'MarkdownV2' });
-    await this.prisma.consultation.create({
-      data: {
-        chatId: chat.id,
-        operatorId: operator.id,
-        userId: chat.clientId,
-      },
+    await this.prisma.consultation.update({
+      where: { chatId: chat.id },
+      data: { chatId: chat.id, operatorId: operator.id, userId: chat.clientId },
     });
 
     for (const message of messages) {

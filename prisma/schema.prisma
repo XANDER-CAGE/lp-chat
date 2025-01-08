@@ -146,14 +146,16 @@ model user {
 }
 
 model chat {
-  id                String            @id @default(dbgenerated("generate_object_id()")) @db.VarChar(24)
-  topicId           String            @map("topic_id")
-  topic             topic             @relation(fields: [topicId], references: [id])
-  status            chatstatus        @map("status")
-  clientId          String            @map("client_id")
-  client            user              @relation("clientChats", fields: [clientId], references: [id])
-  operatorId        String?           @map("operator_id")
-  operator          user?             @relation("operatorChats", fields: [operatorId], references: [id])
+  id             String     @id @default(dbgenerated("generate_object_id()")) @db.VarChar(24)
+  topicId        String     @map("topic_id")
+  topic          topic      @relation(fields: [topicId], references: [id])
+  status         chatstatus @map("status")
+  clientId       String     @map("client_id")
+  client         user       @relation("clientChats", fields: [clientId], references: [id])
+  operatorId     String?    @map("operator_id")
+  operator       user?      @relation("operatorChats", fields: [operatorId], references: [id])
+  consultationId String?    @map("consultation_id")
+
   messages          message[]
   rating            rating[]
   rejectedOperators rejectedChat[]
@@ -259,7 +261,7 @@ model consultation {
   userId        String    @map("user_id")
   createdAt     DateTime? @default(now()) @map("created_at")
   status        Int       @default(0)
-  chatId        String?   @map("chat_id")
+  chatId        String?   @unique() @map("chat_id")
   isPayed       Boolean?  @default(false) @map("is_payed")
   isFree        Boolean?  @default(false) @map("is_free")
   transactionId String?   @map("transaction_id") @db.Uuid

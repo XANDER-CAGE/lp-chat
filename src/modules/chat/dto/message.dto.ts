@@ -16,4 +16,9 @@ export class CreateMessageDto {
   @IsOptional()
   @IsString()
   fileId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  consultationId: string;
 }
