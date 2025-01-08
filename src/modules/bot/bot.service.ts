@@ -124,6 +124,7 @@ export class BotService {
         from doctor.doctors as d
         where d.is_deleted is false
           and d.is_verified is true
+          and d.role = 'operator'
           and d.phone_number = ${contact.phone_number}
         limit 1;
       `;
@@ -156,6 +157,9 @@ export class BotService {
         phone: contact.phone_number,
         telegramId: ctx.from.id.toString(),
         username: ctx.from.username,
+        doctorId: exitDoc[0].id,
+        createdBy: exitDoc[0].id,
+        email: exitDoc[0].email,
       },
     });
     ctx.reply(
@@ -242,6 +246,14 @@ export class BotService {
     });
     const editedMsgText = `Chat started with *${firstname} ${lastname}*`;
     await ctx.editMessageText(editedMsgText, { parse_mode: 'MarkdownV2' });
+    await this.prisma.consultation.create({
+      data: {
+        chatId: chat.id,
+        operatorId: operator.id,
+        userId: chat.clientId,
+      },
+    });
+
     for (const message of messages) {
       const formattedMessage = formatMessage({
         firstname,
@@ -253,6 +265,7 @@ export class BotService {
         await this.fileToBot(ctx.from.id, message.file, formattedMessage, null);
         continue;
       }
+
       await ctx.reply(formattedMessage, { parse_mode: 'MarkdownV2' });
     }
   }

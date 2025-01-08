@@ -6,7 +6,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["auth", "chat", "doctor"]
+  schemas  = ["auth", "chat", "doctor", "consultation"]
 }
 
 model file {
@@ -249,4 +249,25 @@ enum shiftStatus {
   inactive
 
   @@schema("chat")
+}
+
+// Stmtom checker model
+
+model consultation {
+  id            String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  operatorId    String?   @map("operator_id")
+  userId        String    @map("user_id")
+  createdAt     DateTime? @default(now()) @map("created_at")
+  status        Int       @default(0)
+  chatId        String?   @map("chat_id")
+  isPayed       Boolean?  @default(false) @map("is_payed")
+  isFree        Boolean?  @default(false) @map("is_free")
+  transactionId String?   @map("transaction_id") @db.Uuid
+  details       Json?     @map("details")
+  bookedAt      DateTime? @map("booked_at")
+  rank          Int?      @map("rank")
+  comment       String?   @map("comment")
+
+  @@map("consultations")
+  @@schema("consultation")
 }
