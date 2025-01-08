@@ -119,6 +119,22 @@ export class BotService {
   }
 
   async contact(ctx: Context, contact: any) {
+    const exitDoc: any = await this.prisma.$queryRaw`
+        select *
+        from doctor.doctors as d
+        where d.is_deleted is false
+          and d.is_verified is true
+          and d.phone_number = ${contact.phone_number}
+        limit 1;
+      `;
+
+    if (!exitDoc?.length) {
+      return ctx.reply(
+        'Your number is not registered as an operator on the davoai.uz platform.',
+        { reply_markup: { remove_keyboard: true } },
+      );
+    }
+
     const operator = await this.prisma.user.findFirst({
       where: {
         OR: [
