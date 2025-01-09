@@ -52,7 +52,7 @@ export class ChatService {
       if (!file) throw new NotFoundException('File not found');
     }
     const message = await this.prisma.message.create({
-      data: <any>{ ...dto, authorId: user.id, chatId: chat.id, id: objectId() },
+      data: <any>{authorId: user.id, chatId: chat.id, id: objectId(), content: dto.content, fileId: dto.fileId, repliedMessageId: dto.repliedMessageId },
       include: { chat: true },
     });
     if (chat.status == 'init') {
