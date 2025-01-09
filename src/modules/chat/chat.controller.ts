@@ -5,18 +5,16 @@ import {
   Param,
   Post,
   Query,
-  Req,
   UseGuards,
 } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { CreateChatDto } from './dto/chat.dto';
 import { User } from 'src/common/decorator/user.decorator';
-import { user } from '@prisma/client';
 import { IdDto } from 'src/common/dto/id.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CreateMessageDto } from './dto/message.dto';
 import { CreateRatingDto } from './dto/create-rating.dto';
-import { IMyReq } from 'src/common/interface/my-req.interface';
+import { IUser } from 'src/common/interface/my-req.interface';
 import { CoreApiResponse } from 'src/common/response-class/core-api.response';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { Roles } from 'src/common/decorator/roles.decorator';
@@ -37,26 +35,32 @@ export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
   @Post()
-  async chat(@Body() dto: CreateChatDto, @User() user: user) {
+  async chat(@Body() dto: CreateChatDto, @User() user: IUser) {
     const data = await this.chatService.chatCreate(dto, user);
     return CoreApiResponse.success(data);
   }
 
   @Post('message')
-  async message(@Body() dto: CreateMessageDto, @User() user: user) {
+  async message(@Body() dto: CreateMessageDto, @User() user: IUser) {
     const data = await this.chatService.message(dto, user);
     return CoreApiResponse.success(data);
   }
 
   @Post('rate')
-  async rate(@Body() dto: CreateRatingDto, @User() user: user) {
+  async rate(@Body() dto: CreateRatingDto, @User() user: IUser) {
     const data = await this.chatService.rate(dto, user);
     return CoreApiResponse.success(data);
   }
 
   @Get('all-messages')
-  async allMessages(@Req() req: IMyReq, @Query() dto: PaginationDto) {
-    const data = await this.chatService.getMessages(req.user.id, dto);
+  async allMessages(@Query() dto: PaginationDto, @User() user: IUser) {
+    const data = await this.chatService.getMessages(dto, user);
+    return CoreApiResponse.success(data);
+  }
+
+  @Get('messageByChatId/:id')
+  async messageByChaId(@Query() dto: PaginationDto, @User() user: IUser) {
+    const data = await this.chatService.getMessages(dto, user);
     return CoreApiResponse.success(data);
   }
 

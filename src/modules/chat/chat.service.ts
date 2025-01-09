@@ -2,7 +2,6 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateChatDto } from './dto/chat.dto';
 import { BotService } from '../bot/bot.service';
-import { user } from '@prisma/client';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { findOperatorsCronId } from 'src/common/var/index.var';
 import { CreateMessageDto } from './dto/message.dto';
@@ -11,6 +10,7 @@ import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { ChatListDto } from './dto/chat-list.dto';
 import { RejectedChatListDto } from './dto/rejectted-chat-list.dto';
 import { objectId } from 'src/common/util/formate-message.util';
+import { IUser } from 'src/common/interface/my-req.interface';
 
 @Injectable()
 export class ChatService {
@@ -20,7 +20,7 @@ export class ChatService {
     private schedulerRegistry: SchedulerRegistry,
   ) {}
 
-  async message(dto: CreateMessageDto, user: user) {
+  async message(dto: CreateMessageDto, user: IUser) {
     let chat: any = await this.prisma.chat.findFirst({
       where: {
         clientId: user.id,
@@ -65,14 +65,14 @@ export class ChatService {
           shiftStatus: 'active',
         },
       });
-      const history: any = await this.getMessages(user.id, {});
+      const history: any = await this.getMessages({}, user);
       history.availableOperators = operators.length;
       const job = this.schedulerRegistry.getCronJob(findOperatorsCronId);
       job.start();
       return history;
     }
     await this.botService.messageViaBot(message.id);
-    return await this.getMessages(user.id, {});
+    return await this.getMessages({}, user);
   }
 
   async chatHistory(id: string) {
@@ -161,7 +161,7 @@ export class ChatService {
     }
   }
 
-  async chatCreate(dto: CreateChatDto, user: user) {
+  async chatCreate(dto: CreateChatDto, user: IUser) {
     if (dto.topicId) {
       const topic = await this.prisma.topic.findFirst({
         where: { id: dto.topicId, isDeleted: false },
@@ -213,7 +213,7 @@ export class ChatService {
     });
   }
 
-  async rate(dto: CreateRatingDto, user: user) {
+  async rate(dto: CreateRatingDto, user: IUser) {
     const chat = await this.prisma.chat.findFirst({
       where: { id: dto.chatId, clientId: user.id, isDeleted: false },
     });
@@ -223,7 +223,7 @@ export class ChatService {
     });
   }
 
-  async getMessages(clientId: string, dto: PaginationDto) {
+  async getMessages(dto: PaginationDto, { id: clientId }: IUser) {
     const skip = ((dto.page || 1) - 1) * (dto.limit || 50);
     const activeChat = await this.prisma.chat.findMany({
       where: { clientId, status: { in: ['active', 'init'] }, isDeleted: false },
