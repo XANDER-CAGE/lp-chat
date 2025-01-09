@@ -164,16 +164,20 @@ export class ChatService {
   async chatCreate(dto: CreateChatDto, user: user) {
     if (dto.topicId) {
       const topic = await this.prisma.topic.findFirst({
-        where: { id: dto.topicId },
+        where: { id: dto.topicId, isDeleted: false },
       });
       if (!topic) throw new NotFoundException('Topic not found');
     } else {
       let topic = await this.prisma.topic.findFirst({
-        where: { name: 'other' },
+        where: { name: 'other', isDeleted: false },
       });
       if (!topic) {
         topic = await this.prisma.topic.create({
-          data: { id: objectId(), name: 'other', description: 'other' },
+          data: {
+            id: objectId(),
+            name: 'other',
+            description: 'other',
+          },
         });
       }
       dto.topicId = topic.id;
@@ -191,6 +195,7 @@ export class ChatService {
         clientId: user.id,
         consultationId: dto.consultationId,
         status: { in: ['active', 'init'] },
+        isDeleted: false,
       },
       include: { messages: true },
     });
@@ -210,7 +215,7 @@ export class ChatService {
 
   async rate(dto: CreateRatingDto, user: user) {
     const chat = await this.prisma.chat.findFirst({
-      where: { id: dto.chatId, clientId: user.id },
+      where: { id: dto.chatId, clientId: user.id, isDeleted: false },
     });
     if (!chat) throw new NotFoundException('Chat not found');
     return await this.prisma.rating.create({
@@ -221,10 +226,10 @@ export class ChatService {
   async getMessages(clientId: string, dto: PaginationDto) {
     const skip = ((dto.page || 1) - 1) * (dto.limit || 50);
     const activeChat = await this.prisma.chat.findMany({
-      where: { clientId, status: { in: ['active', 'init'] } },
+      where: { clientId, status: { in: ['active', 'init'] }, isDeleted: false },
     });
     const messages = await this.prisma.message.findMany({
-      where: { chat: { clientId } },
+      where: { chat: { clientId }, isDeleted: false },
       include: {
         author: true,
         repliedMessage: { include: { file: true } },
@@ -242,15 +247,17 @@ export class ChatService {
   async getChatStatistics() {
     const totalChats = await this.prisma.chat.count();
     const activeChats = await this.prisma.chat.count({
-      where: { status: 'active' },
+      where: { status: 'active', isDeleted: false },
     });
     const closedChats = await this.prisma.chat.count({
-      where: { status: 'done' },
+      where: { status: 'done', isDeleted: false },
     });
     const initiatedChats = await this.prisma.chat.count({
-      where: { status: 'init' },
+      where: { status: 'init', isDeleted: false },
     });
-    const totalMessages = await this.prisma.message.count();
+    const totalMessages = await this.prisma.message.count({
+      where: { isDeleted: false },
+    });
 
     return {
       totalChats,
@@ -263,11 +270,12 @@ export class ChatService {
 
   async getMessageStatistics() {
     const clientMessages = await this.prisma.message.count({
-      where: { author: { telegramId: null } },
+      where: { author: { telegramId: null, isDeleted: false } },
     });
     const operatorMessages = await this.prisma.message.count({
       where: {
         author: { NOT: { telegramId: null } },
+        isDeleted: false,
       },
     });
 
@@ -284,6 +292,7 @@ export class ChatService {
         shiftStatus: 'active',
         blockedAt: null,
         approvedAt: { not: null },
+        isDeleted: false,
       },
       include: {
         operatorChats: {
@@ -305,6 +314,7 @@ export class ChatService {
     const chatsWithMessages = await this.prisma.chat.findMany({
       where: {
         OR: [{ status: 'active' }, { status: 'done' }],
+        isDeleted: false,
       },
       include: {
         messages: {
@@ -341,7 +351,9 @@ export class ChatService {
   }
 
   async getRatingAnalytics() {
-    const totalRatings = await this.prisma.rating.count();
+    const totalRatings = await this.prisma.rating.count({
+      where: { isDeleted: false },
+    });
     const averageRating = await this.prisma.rating.aggregate({
       _avg: {
         rate: true,
@@ -355,8 +367,11 @@ export class ChatService {
   }
 
   async getRejectedChatAnalytics() {
-    const rejectedChats = await this.prisma.rejectedChat.count();
+    const rejectedChats = await this.prisma.rejectedChat.count({
+      where: { isDeleted: false },
+    });
     const rejectedChatsByOperator = await this.prisma.rejectedChat.groupBy({
+      where: { isDeleted: false },
       by: ['operatorId'],
       _count: {
         operatorId: true,

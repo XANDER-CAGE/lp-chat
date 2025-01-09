@@ -43,6 +43,7 @@ export class BotService {
       where: {
         telegramId: ctx.from.id.toString(),
         approvedAt: { not: null },
+        isDeleted: false,
       },
     });
 
@@ -59,7 +60,7 @@ export class BotService {
       data: { status: 'active', operatorId: operator.id },
     });
     await this.prisma.user.update({
-      where: { id: operator.id },
+      where: { id: operator.id, isDeleted: false },
       data: { shiftStatus: 'active' },
     });
     return await ctx.reply(`You've activated your status`);
@@ -70,6 +71,7 @@ export class BotService {
       where: {
         telegramId: ctx.from.id.toString(),
         approvedAt: { not: null },
+        isDeleted: false,
       },
     });
     if (!operator) {
@@ -81,6 +83,7 @@ export class BotService {
       where: {
         operatorId: operator.id,
         status: 'active',
+        isDeleted: false,
       },
     });
     if (chat) {
@@ -93,7 +96,7 @@ export class BotService {
       data: { status: 'inactive', operatorId: operator.id },
     });
     await this.prisma.user.update({
-      where: { id: operator.id },
+      where: { id: operator.id, isDeleted: false },
       data: { shiftStatus: 'inactive' },
     });
     return ctx.reply(`You've deactivated your status`);
@@ -101,7 +104,7 @@ export class BotService {
 
   async register(ctx: Context) {
     const operator = await this.prisma.user.findFirst({
-      where: { telegramId: ctx.from.id.toString() },
+      where: { telegramId: ctx.from.id.toString(), isDeleted: false },
     });
     if (operator) {
       return ctx.reply(
@@ -142,6 +145,7 @@ export class BotService {
           { telegramId: ctx.from.id.toString() },
           { phone: contact.phone_number },
         ],
+        isDeleted: false,
       },
     });
     if (operator) {
@@ -184,7 +188,7 @@ export class BotService {
       });
       if (rejected) continue;
       const messageToDelete = await this.prisma.messageToDelete.findFirst({
-        where: { chatId: chatId, operatorId: operator.id },
+        where: { chatId: chatId, operatorId: operator.id, isDeleted: false },
       });
       if (messageToDelete) {
         await this.bot.api
@@ -223,24 +227,29 @@ export class BotService {
 
   async receive(ctx: Context, chatId: string) {
     const chat = await this.prisma.chat.findFirst({
-      where: { id: chatId, status: { not: 'active' }, operatorId: null },
+      where: {
+        id: chatId,
+        status: { not: 'active' },
+        operatorId: null,
+        isDeleted: false,
+      },
       include: { topic: true },
     });
     if (!chat) {
       return ctx.editMessageText('Chat already started with other operator');
     }
     const operator = await this.prisma.user.findFirst({
-      where: { telegramId: ctx.from.id.toString() },
+      where: { telegramId: ctx.from.id.toString(), isDeleted: false },
     });
     await this.prisma.chat.update({
       where: { id: chat.id },
       data: { operatorId: operator.id, status: 'active' },
     });
     const { firstname, lastname } = await this.prisma.user.findFirst({
-      where: { id: chat.clientId },
+      where: { id: chat.clientId, isDeleted: false },
     });
     const messages = await this.prisma.message.findMany({
-      where: { chatId: chat.id },
+      where: { chatId: chat.id, isDeleted: false },
       include: { file: true },
       orderBy: { createdAt: 'asc' },
     });
@@ -273,11 +282,12 @@ export class BotService {
         telegramId: ctx.from.id.toString(),
         approvedAt: { not: null },
         blockedAt: null,
+        isDeleted: false,
       },
     });
     if (!operator) return ctx.reply('You have no right');
     const activeChat = await this.prisma.chat.findFirst({
-      where: { status: 'active', operatorId: operator.id },
+      where: { status: 'active', operatorId: operator.id, isDeleted: false },
     });
     if (!activeChat) return ctx.reply('No active chats');
     const repliedMessageTgId =
@@ -286,7 +296,7 @@ export class BotService {
     let repliedMessageId: string;
     if (repliedMessageTgId) {
       const repliedMessage = await this.prisma.message.findFirst({
-        where: { tgMsgId: repliedMessageTgId.toString() },
+        where: { tgMsgId: repliedMessageTgId.toString(), isDeleted: false },
       });
       repliedMessageId = repliedMessage?.id || null;
     }

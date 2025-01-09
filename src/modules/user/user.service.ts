@@ -19,13 +19,34 @@ export class UserService {
 
   async findAll() {
     return await this.prisma.$queryRaw`
-    SELECT u.*, AVG(r."rate")::double precision AS rate 
-    FROM "user" u  
-    LEFT JOIN "chat" ch ON ch."operator_id" = u."id" 
-    LEFT JOIN "rating" r ON r."chat_id" = ch."id"
-    -- WHERE u."telegram_id" IS NOT NULL
-    GROUP BY u."id";  
-`;
+      with my_user as (
+        select id as user_id, first_name, last_name, role::text, null as doctor_id
+        from auth.users as au
+        where au.is_deleted is false
+          and au.is_verified is true
+        union
+        select null as user_id, first_name, last_name, role::text, id as doctor_id
+        from doctor.doctors as dd
+        where dd.is_deleted is false
+          and dd.is_verified is true
+      )
+      select cu.id,
+             cu.user_id,
+             cu.doctor_id,
+             mu.role,
+             cu.firstname,
+             cu.lastname,
+             cu.shift_status,
+             cu.telegram_id,
+             cu.username,
+             cu.email,
+             cu.phone,
+             cu.approved_at,
+             cu.blocked_at
+      from my_user as mu
+      join chat."user" as cu on (cu.doctor_id = mu.doctor_id or cu.user_id = mu.user_id)
+      where cu.is_deleted is false;
+    `;
   }
 
   async update(id: string, dto: UpdateUserDto) {
@@ -60,7 +81,11 @@ export class UserService {
         throw new NotFoundException('User not found');
 
       const user = await this.prisma.user.upsert({
-        where: { userId: dataFromJwt?.userId, doctorId: dataFromJwt?.doctorId },
+        where: {
+          userId: dataFromJwt?.userId,
+          doctorId: dataFromJwt?.doctorId,
+          isDeleted: false,
+        },
         create: dataFromJwt,
         update: dataFromJwt,
       });
@@ -94,7 +119,7 @@ export class UserService {
 
   async getShifts(id: string) {
     return await this.prisma.shift.findMany({
-      where: { operatorId: id },
+      where: { operatorId: id, isDeleted: false },
       orderBy: { createdAt: 'desc' },
     });
   }

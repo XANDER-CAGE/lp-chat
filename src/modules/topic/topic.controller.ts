@@ -13,6 +13,7 @@ import { CreateTopicDto } from './dto/create-topic.dto';
 import { UpdateTopicDto } from './dto/update-topic.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from 'src/common/guard/auth.guard';
+import { User } from 'src/common/decorator/user.decorator';
 
 @ApiTags('Topic')
 @Controller('topic')
@@ -37,7 +38,7 @@ export class TopicController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.topicService.remove(id);
+  remove(@Param('id') id: string, @User() user: any) {
+    return this.topicService.remove(id, user);
   }
 }

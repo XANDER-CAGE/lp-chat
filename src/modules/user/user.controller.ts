@@ -17,8 +17,9 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get()
-  findAll() {
-    return this.userService.findAll();
+  async findAll() {
+    const data = await this.userService.findAll();
+    return CoreApiResponse.success(data);
   }
 
   @UseGuards(RolesGuard)
