@@ -269,6 +269,7 @@ model consultation {
   bookedAt      DateTime? @map("booked_at")
   rank          Int?      @map("rank")
   comment       String?   @map("comment")
+  topicId       String?   @map("topic_id")
 
   @@map("consultations")
   @@schema("consultation")

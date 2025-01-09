@@ -257,7 +257,12 @@ export class BotService {
     await ctx.editMessageText(editedMsgText, { parse_mode: 'MarkdownV2' });
     await this.prisma.consultation.update({
       where: { chatId: chat.id },
-      data: { chatId: chat.id, operatorId: operator.id, userId: chat.clientId },
+      data: {
+        chatId: chat.id,
+        operatorId: operator.id,
+        userId: chat.clientId,
+        topicId: chat.topicId,
+      },
     });
 
     for (const message of messages) {
