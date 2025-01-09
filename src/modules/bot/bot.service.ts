@@ -1,5 +1,5 @@
 import { InjectBot } from '@grammyjs/nestjs';
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Bot, Context, InputFile, Keyboard } from 'grammy';
 import { PrismaService } from '../prisma/prisma.service';
 import { file, user } from '@prisma/client';
@@ -255,8 +255,13 @@ export class BotService {
     });
     const editedMsgText = `Chat started with *${firstname} ${lastname}*`;
     await ctx.editMessageText(editedMsgText, { parse_mode: 'MarkdownV2' });
+
+    if (!chat.consultationId) {
+      throw new NotFoundException('Consultation not found');
+    }
+
     await this.prisma.consultation.update({
-      where: { chatId: chat.id },
+      where: { id: chat.consultationId },
       data: {
         chatId: chat.id,
         operatorId: operator.id,
@@ -278,6 +283,10 @@ export class BotService {
       }
 
       await ctx.reply(formattedMessage, { parse_mode: 'MarkdownV2' });
+      this.socketGateWay.sendMessageToAcceptOperator(
+        chat.consultationId,
+        operator,
+      );
     }
   }
 

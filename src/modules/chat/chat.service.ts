@@ -31,9 +31,14 @@ export class ChatService {
 
     if (dto.consultationId) {
       const consultation = await this.prisma.consultation.findFirst({
-        where: { id: dto.consultationId, userId: user.id },
+        where: { id: dto.consultationId },
       });
-      if (!consultation) throw new NotFoundException('Consultation not found');
+
+      console.log(consultation);
+
+      // if (!consultation?.id) {
+      //   throw new NotFoundException('Consultation not found');
+      // }
     }
 
     if (!chat) {
@@ -192,9 +197,10 @@ export class ChatService {
 
     if (dto.consultationId) {
       const consultation = await this.prisma.consultation.findFirst({
-        where: { id: dto.consultationId, userId: user.id },
+        where: { id: dto.consultationId },
       });
-      if (!consultation) throw new NotFoundException('Consultation not found');
+      if (!consultation?.id)
+        throw new NotFoundException('Consultation not found');
     }
 
     const chat = await this.prisma.chat.findFirst({

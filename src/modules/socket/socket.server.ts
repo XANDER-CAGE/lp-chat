@@ -85,6 +85,12 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(chatId).emit('chat', CoreApiResponse.success(message));
   }
 
+  sendMessageToAcceptOperator(consultationId: string, message: any) {
+    this.server
+      .to(consultationId)
+      .emit('accepted', CoreApiResponse.success(message));
+  }
+
   disconnectChatMembers(chatId: string) {
     try {
       const room = this.server.sockets.adapter.rooms.get(chatId.toString());
