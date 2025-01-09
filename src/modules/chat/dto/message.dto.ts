@@ -19,7 +19,7 @@ export class CreateMessageDto {
   fileId?: string;
 
   @ApiPropertyOptional()
-  @IsOptional()
+  // @IsOptional()
   @IsString()
   consultationId: string;
 }
