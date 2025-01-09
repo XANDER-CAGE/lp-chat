@@ -12,7 +12,7 @@ import { CreateChatDto } from './dto/chat.dto';
 import { User } from 'src/common/decorator/user.decorator';
 import { IdDto } from 'src/common/dto/id.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { CreateMessageDto } from './dto/message.dto';
+import { CreateMessageDto, GetMessagesByChatIdDto } from './dto/message.dto';
 import { CreateRatingDto } from './dto/create-rating.dto';
 import { IUser } from 'src/common/interface/my-req.interface';
 import { CoreApiResponse } from 'src/common/response-class/core-api.response';
@@ -58,9 +58,12 @@ export class ChatController {
     return CoreApiResponse.success(data);
   }
 
-  @Get('messageByChatId/:id')
-  async messageByChaId(@Query() dto: PaginationDto, @User() user: IUser) {
-    const data = await this.chatService.getMessages(dto, user);
+  @Get('message-by-chat/:id')
+  async messageByChaId(
+    @Query() dto: GetMessagesByChatIdDto,
+    @User() user: IUser,
+  ) {
+    const data = await this.chatService.getMessagesByChatId(dto, user);
     return CoreApiResponse.success(data);
   }
 

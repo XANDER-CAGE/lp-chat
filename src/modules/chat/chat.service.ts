@@ -4,7 +4,7 @@ import { CreateChatDto } from './dto/chat.dto';
 import { BotService } from '../bot/bot.service';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { findOperatorsCronId } from 'src/common/var/index.var';
-import { CreateMessageDto } from './dto/message.dto';
+import { CreateMessageDto, GetMessagesByChatIdDto } from './dto/message.dto';
 import { CreateRatingDto } from './dto/create-rating.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { ChatListDto } from './dto/chat-list.dto';
@@ -227,6 +227,33 @@ export class ChatService {
     const skip = ((dto.page || 1) - 1) * (dto.limit || 50);
     const activeChat = await this.prisma.chat.findMany({
       where: { clientId, status: { in: ['active', 'init'] }, isDeleted: false },
+    });
+    const messages = await this.prisma.message.findMany({
+      where: { chat: { clientId }, isDeleted: false },
+      include: {
+        author: true,
+        repliedMessage: { include: { file: true } },
+        file: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: dto.limit || 50,
+    });
+    return { activeChat, messages };
+  }
+
+  async getMessagesByChatId(
+    dto: GetMessagesByChatIdDto,
+    { id: clientId }: IUser,
+  ) {
+    const skip = ((dto.page || 1) - 1) * (dto.limit || 50);
+    const activeChat = await this.prisma.chat.findMany({
+      where: {
+        id: dto.chatId,
+        clientId,
+        status: { in: ['active', 'init'] },
+        isDeleted: false,
+      },
     });
     const messages = await this.prisma.message.findMany({
       where: { chat: { clientId }, isDeleted: false },
