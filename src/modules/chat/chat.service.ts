@@ -52,7 +52,14 @@ export class ChatService {
       if (!file) throw new NotFoundException('File not found');
     }
     const message = await this.prisma.message.create({
-      data: <any>{authorId: user.id, chatId: chat.id, id: objectId(), content: dto.content, fileId: dto.fileId, repliedMessageId: dto.repliedMessageId },
+      data: <any>{
+        authorId: user.id,
+        chatId: chat.id,
+        id: objectId(),
+        content: dto.content,
+        fileId: dto.fileId,
+        repliedMessageId: dto.repliedMessageId,
+      },
       include: { chat: true },
     });
     if (chat.status == 'init') {
@@ -76,7 +83,7 @@ export class ChatService {
   }
 
   async chatHistory(id: string) {
-    return await this.prisma.chat.findMany({
+    return this.prisma.chat.findMany({
       where: { id },
       include: {
         messages: {
@@ -105,7 +112,7 @@ export class ChatService {
   }
 
   async rejectedChatList(dto: RejectedChatListDto) {
-    return await this.prisma.rejectedChat.findMany({
+    return this.prisma.rejectedChat.findMany({
       where: {
         operator: { phone: { contains: dto.operatorPhoneNumber || '' } },
         // chatId: dto.chatId,
@@ -218,7 +225,7 @@ export class ChatService {
       where: { id: dto.chatId, clientId: user.id, isDeleted: false },
     });
     if (!chat) throw new NotFoundException('Chat not found');
-    return await this.prisma.rating.create({
+    return this.prisma.rating.create({
       data: <any>{ ...dto, clientId: user.id },
     });
   }
