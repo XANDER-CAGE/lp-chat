@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { user } from '@prisma/client';
@@ -97,9 +93,7 @@ export class UserService {
     }
   }
 
-  private async verifyTokenAndSetUser(
-    token: string,
-  ): Promise<'user' | 'doctor'> {
+  private async verifyTokenAndSetUser(token: string): Promise<'user' | 'doctor'> {
     try {
       const payload = await this.jwtService.verifyAsync(token, {
         secret: env.JWT_SECRET,

@@ -20,12 +20,7 @@ export class CoreApiResponse {
   readonly pagination: any;
   readonly data: any;
 
-  constructor(
-    success: boolean,
-    data?: any,
-    pagination?: IpaginationArg,
-    error?: any,
-  ) {
+  constructor(success: boolean, data?: any, pagination?: IpaginationArg, error?: any) {
     this.success = success;
     this.data = data || null;
     this.timestamp = new Date().toLocaleString('ru-RU', {

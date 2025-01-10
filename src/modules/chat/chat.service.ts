@@ -101,9 +101,7 @@ export class ChatService {
     const operatorQuery = dto.operatorPhoneNumber
       ? { operator: { phone: { contains: dto.operatorPhoneNumber || '' } } }
       : {};
-    const clientquery = dto.userEmail
-      ? { client: { email: { contains: dto.userEmail } } }
-      : {};
+    const clientquery = dto.userEmail ? { client: { email: { contains: dto.userEmail } } } : {};
     const where = { ...operatorQuery, ...clientquery };
     return this.prisma.chat.findMany({
       where,
@@ -197,8 +195,7 @@ export class ChatService {
       const consultation = await this.prisma.consultation.findFirst({
         where: { id: dto.consultationId },
       });
-      if (!consultation?.id)
-        throw new NotFoundException('Consultation not found');
+      if (!consultation?.id) throw new NotFoundException('Consultation not found');
     }
 
     const chat = await this.prisma.chat.findFirst({
@@ -253,10 +250,7 @@ export class ChatService {
     return { activeChat, messages };
   }
 
-  async getMessagesByChatId(
-    dto: GetMessagesByChatIdDto,
-    { id: clientId }: IUser,
-  ) {
+  async getMessagesByChatId(dto: GetMessagesByChatIdDto, { id: clientId }: IUser) {
     const skip = ((dto.page || 1) - 1) * (dto.limit || 50);
     const activeChat = await this.prisma.chat.findMany({
       where: {
@@ -366,25 +360,18 @@ export class ChatService {
     let responseCount = 0;
 
     chatsWithMessages.forEach((chat) => {
-      const firstClientMessage = chat.messages.find(
-        (msg) => msg.author.telegramId == null,
-      );
-      const firstOperatorMessage = chat.messages.find(
-        (msg) => msg.author.telegramId != null,
-      );
+      const firstClientMessage = chat.messages.find((msg) => msg.author.telegramId == null);
+      const firstOperatorMessage = chat.messages.find((msg) => msg.author.telegramId != null);
 
       if (firstClientMessage && firstOperatorMessage) {
         const responseTime =
-          firstOperatorMessage.createdAt.getTime() -
-          firstClientMessage.createdAt.getTime();
+          firstOperatorMessage.createdAt.getTime() - firstClientMessage.createdAt.getTime();
         totalResponseTime += responseTime;
         responseCount++;
       }
     });
 
-    const averageResponseTime = responseCount
-      ? totalResponseTime / responseCount
-      : 0;
+    const averageResponseTime = responseCount ? totalResponseTime / responseCount : 0;
     return { averageResponseTime };
   }
 

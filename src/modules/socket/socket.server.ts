@@ -38,9 +38,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleConnection(socket: Socket) {
     const chatId = socket?.handshake?.query?.chatId?.toString();
     if (!chatId) {
-      const error: HttpException = new BadRequestException(
-        '"chatId" in params not found',
-      );
+      const error: HttpException = new BadRequestException('"chatId" in params not found');
       const data = CoreApiResponse.error(error.getResponse());
       this.server.to(socket.id).emit('error', data);
       return socket.disconnect();
@@ -86,9 +84,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   sendMessageToAcceptOperator(consultationId: string, message: any) {
-    this.server
-      .to(consultationId)
-      .emit('accepted', CoreApiResponse.success(message));
+    this.server.to(consultationId).emit('accepted', CoreApiResponse.success(message));
   }
 
   disconnectChatMembers(chatId: string) {

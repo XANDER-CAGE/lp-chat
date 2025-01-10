@@ -1,12 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Post,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { CreateChatDto } from './dto/chat.dto';
 import { User } from 'src/common/decorator/user.decorator';
@@ -59,10 +51,7 @@ export class ChatController {
   }
 
   @Get('message-by-chat/:id')
-  async messageByChaId(
-    @Query() dto: GetMessagesByChatIdDto,
-    @User() user: IUser,
-  ) {
+  async messageByChaId(@Query() dto: GetMessagesByChatIdDto, @User() user: IUser) {
     const data = await this.chatService.getMessagesByChatId(dto, user);
     return CoreApiResponse.success(data);
   }

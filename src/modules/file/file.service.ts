@@ -1,8 +1,4 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Response } from 'express';
 import { MinioService } from 'nestjs-minio-client';
 import { extname } from 'path';
@@ -79,9 +75,6 @@ export class FileService {
     const file = await this.prisma.file.findFirst({ where: { id: fileId } });
     if (!file) throw new NotFoundException('File not found');
     const filename = `${file.id}${extname(file.name)}`;
-    return await this.minio.client.presignedGetObject(
-      file.bucketName,
-      filename,
-    );
+    return await this.minio.client.presignedGetObject(file.bucketName, filename);
   }
 }

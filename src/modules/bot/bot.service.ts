@@ -24,18 +24,15 @@ export class BotService {
   ) {}
 
   async onStart(ctx: Context): Promise<void> {
-    ctx.reply(
-      `Hey, ${ctx.from.first_name}. I'm ${this.bot.botInfo.first_name}`,
-      {
-        reply_markup: {
-          inline_keyboard: [
-            [{ callback_data: 'register', text: 'Register' }],
-            [{ callback_data: 'launch', text: 'Launch' }],
-            [{ callback_data: 'stop', text: 'End' }],
-          ],
-        },
+    ctx.reply(`Hey, ${ctx.from.first_name}. I'm ${this.bot.botInfo.first_name}`, {
+      reply_markup: {
+        inline_keyboard: [
+          [{ callback_data: 'register', text: 'Register' }],
+          [{ callback_data: 'launch', text: 'Launch' }],
+          [{ callback_data: 'stop', text: 'End' }],
+        ],
       },
-    );
+    });
   }
 
   async commandStart(ctx: Context) {
@@ -48,9 +45,7 @@ export class BotService {
     });
 
     if (!operator) {
-      return ctx.reply(
-        'Please /register and(or) wait administrator to approve',
-      );
+      return ctx.reply('Please /register and(or) wait administrator to approve');
     }
     if (operator.shiftStatus == 'active') {
       ctx.reply(`You've already activated your status`);
@@ -75,9 +70,7 @@ export class BotService {
       },
     });
     if (!operator) {
-      return ctx.reply(
-        'Please /register and(or) wait administrator to approve',
-      );
+      return ctx.reply('Please /register and(or) wait administrator to approve');
     }
     const chat = await this.prisma.chat.findFirst({
       where: {
@@ -107,9 +100,7 @@ export class BotService {
       where: { telegramId: ctx.from.id.toString(), isDeleted: false },
     });
     if (operator) {
-      return ctx.reply(
-        'Application already saved. Please wait for administrator to approve',
-      );
+      return ctx.reply('Application already saved. Please wait for administrator to approve');
     }
     const contactButton = Keyboard.requestContact('Share Contact');
     return await ctx.reply('Send your contact', {
@@ -133,26 +124,21 @@ export class BotService {
       `;
 
     if (!exitDoc?.length) {
-      return ctx.reply(
-        'Your number is not registered as an operator on the davoai.uz platform.',
-        { reply_markup: { remove_keyboard: true } },
-      );
+      return ctx.reply('Your number is not registered as an operator on the davoai.uz platform.', {
+        reply_markup: { remove_keyboard: true },
+      });
     }
 
     const operator = await this.prisma.user.findFirst({
       where: {
-        OR: [
-          { telegramId: ctx.from.id.toString() },
-          { phone: contact.phone_number },
-        ],
+        OR: [{ telegramId: ctx.from.id.toString() }, { phone: contact.phone_number }],
         isDeleted: false,
       },
     });
     if (operator) {
-      return ctx.reply(
-        'If you want to change your phone number, please contact administration',
-        { reply_markup: { remove_keyboard: true } },
-      );
+      return ctx.reply('If you want to change your phone number, please contact administration', {
+        reply_markup: { remove_keyboard: true },
+      });
     }
     await this.prisma.user.create({
       data: {
@@ -166,10 +152,9 @@ export class BotService {
         email: exitDoc[0].email,
       },
     });
-    ctx.reply(
-      'Application successfully saved. Please wait for administrator to approve',
-      { reply_markup: { remove_keyboard: true } },
-    );
+    ctx.reply('Application successfully saved. Please wait for administrator to approve', {
+      reply_markup: { remove_keyboard: true },
+    });
   }
 
   async sendReceiveConversationButton(
@@ -180,9 +165,7 @@ export class BotService {
   ) {
     for (const operator of operators) {
       const date = new Date();
-      date.setMinutes(
-        date.getMinutes() - env.REJECTED_MESSAGE_TIMEOUT_IN_MINUTES,
-      );
+      date.setMinutes(date.getMinutes() - env.REJECTED_MESSAGE_TIMEOUT_IN_MINUTES);
       const rejected = operator.rejectedChats.some((rejectedChat) => {
         return rejectedChat.chatId == chatId && date < rejectedChat.createdAt;
       });
@@ -283,10 +266,7 @@ export class BotService {
       }
 
       await ctx.reply(formattedMessage, { parse_mode: 'MarkdownV2' });
-      this.socketGateWay.sendMessageToAcceptOperator(
-        chat.consultationId,
-        operator,
-      );
+      this.socketGateWay.sendMessageToAcceptOperator(chat.consultationId, operator);
     }
   }
 
@@ -304,8 +284,7 @@ export class BotService {
       where: { status: 'active', operatorId: operator.id, isDeleted: false },
     });
     if (!activeChat) return ctx.reply('No active chats');
-    const repliedMessageTgId =
-      ctx.update?.message?.reply_to_message?.message_id;
+    const repliedMessageTgId = ctx.update?.message?.reply_to_message?.message_id;
     const tgMessageId = ctx.update?.message?.message_id;
     let repliedMessageId: string;
     if (repliedMessageTgId) {
@@ -350,12 +329,7 @@ export class BotService {
     return { fileId: uploadedFile.id, caption };
   }
 
-  async fileToBot(
-    tgUserId: number,
-    file: file,
-    content: string,
-    replyParams: any,
-  ) {
+  async fileToBot(tgUserId: number, file: file, content: string, replyParams: any) {
     await this.fileService.downloadToStatic(file.id);
     const filename = `${file.id}${extname(file.name)}`;
     const inputFile = new InputFile(pathToStatic + filename);
@@ -399,14 +373,10 @@ export class BotService {
         replyParameters,
       );
     }
-    const messageFromTg = await this.bot.api.sendMessage(
-      +operator.telegramId,
-      formattedMessage,
-      {
-        parse_mode: 'MarkdownV2',
-        reply_parameters: replyParameters,
-      },
-    );
+    const messageFromTg = await this.bot.api.sendMessage(+operator.telegramId, formattedMessage, {
+      parse_mode: 'MarkdownV2',
+      reply_parameters: replyParameters,
+    });
     await this.prisma.message.update({
       where: { id: message.id },
       data: { tgMsgId: messageFromTg.message_id.toString() },
@@ -445,9 +415,7 @@ export class BotService {
       where: { id: chatId },
     });
     if (!chat || chat.status === 'active' || chat.status === 'done') {
-      return ctx.reply(
-        'This chat is already active with another operator or closed.',
-      );
+      return ctx.reply('This chat is already active with another operator or closed.');
     }
     await this.prisma.rejectedChat.create({
       data: {
@@ -457,9 +425,7 @@ export class BotService {
     });
     return await ctx.editMessageReplyMarkup({
       reply_markup: {
-        inline_keyboard: [
-          [{ text: 'Receive', callback_data: `receive$${chatId}` }],
-        ],
+        inline_keyboard: [[{ text: 'Receive', callback_data: `receive$${chatId}` }]],
       },
     });
   }
