@@ -34,11 +34,9 @@ export class ChatService {
         where: { id: dto.consultationId },
       });
 
-      console.log(consultation);
-
-      // if (!consultation?.id) {
-      //   throw new NotFoundException('Consultation not found');
-      // }
+      if (!consultation?.id) {
+        throw new NotFoundException('Consultation not found');
+      }
     }
 
     if (!chat) {
