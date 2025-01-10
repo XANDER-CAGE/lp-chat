@@ -2,3 +2,7 @@
 . "$(dirname -- "$0")/_/husky.sh"
 
 npm run pre-commit
+
+# Format all files and run linting
+npm run format
+npm run lint
