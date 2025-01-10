@@ -18,7 +18,9 @@ import { message } from '@prisma/client';
 import { UserService } from '../user/user.service';
 
 @Injectable()
-@WebSocketGateway()
+@WebSocketGateway({
+  cors: '*',
+})
 export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly prisma: PrismaService,
@@ -26,14 +28,6 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {}
 
   @WebSocketServer() server: Server = new Server();
-
-  // @SubscribeMessage('chat')
-  // async handleChatEvent(@MessageBody() payload: any) {
-  //   console.log(payload);
-
-  //   this.server.to(payload.roomName).emit('chat', payload); // broadcast messages
-  //   return payload;
-  // }
 
   async handleConnection(socket: Socket) {
     const chatId = socket?.handshake?.query?.chatId?.toString();
@@ -53,6 +47,8 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return socket.disconnect();
     }
     const result = await this.userService.validate(jwt);
+
+    console.log(result);
     if (!result.success) {
       const error: HttpException = new UnauthorizedException();
       const data = CoreApiResponse.error(error.getResponse());
@@ -66,6 +62,8 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
         clientId: result.data.id,
       },
     });
+
+    console.log(chat);
     if (!chat) {
       const error = new NotFoundException('Chat not found or already closed');
       const data = CoreApiResponse.error(error.getResponse());

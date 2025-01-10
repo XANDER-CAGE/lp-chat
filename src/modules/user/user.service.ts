@@ -14,7 +14,7 @@ export class UserService {
   ) {}
 
   async findAll() {
-    return await this.prisma.$queryRaw`
+    return this.prisma.$queryRaw`
       with my_user as (
         select id as user_id, first_name, last_name, role::text, null as doctor_id
         from auth.users as au
@@ -76,17 +76,24 @@ export class UserService {
       if (!dataFromJwt.userId && !dataFromJwt.doctorId)
         throw new NotFoundException('User not found');
 
-      const user = await this.prisma.user.upsert({
+      // Check if a user already exists based on userId or doctorId
+      let existingUser: any = await this.prisma.user.findFirst({
         where: {
-          userId: dataFromJwt?.userId,
-          doctorId: dataFromJwt?.doctorId,
+          OR: [{ userId: dataFromJwt?.userId }, { doctorId: dataFromJwt?.doctorId }],
           isDeleted: false,
         },
-        create: dataFromJwt,
-        update: dataFromJwt,
       });
 
-      const data: user = { ...content, ...user };
+      if (!existingUser) {
+        // Create a new user
+        existingUser = await this.prisma.user.create({
+          data: {
+            ...dataFromJwt,
+          },
+        });
+      }
+
+      const data: user = { ...content, ...existingUser };
       return CoreApiResponse.success(data);
     } catch (error) {
       return CoreApiResponse.error(error);
@@ -95,6 +102,8 @@ export class UserService {
 
   private async verifyTokenAndSetUser(token: string): Promise<'user' | 'doctor'> {
     try {
+      token = this.extractTokenFromHeader(token);
+
       const payload = await this.jwtService.verifyAsync(token, {
         secret: env.JWT_SECRET,
       });
@@ -112,9 +121,14 @@ export class UserService {
   }
 
   async getShifts(id: string) {
-    return await this.prisma.shift.findMany({
+    return this.prisma.shift.findMany({
       where: { operatorId: id, isDeleted: false },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  private extractTokenFromHeader(authToken: string): string | undefined {
+    const [type, token] = authToken.split(' ') ?? [];
+    return type === 'Bearer' ? token.trim() : undefined;
   }
 }

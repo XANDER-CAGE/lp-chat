@@ -309,6 +309,8 @@ export class BotService {
         file: true,
       },
     });
+
+    console.log(activeChat.id, 'active chatId');
     this.socketGateWay.sendMessageViaSocket(activeChat.id.toString(), message);
   }
 
