@@ -89,9 +89,9 @@ export class ChatService {
 
     return {
       success: true,
+      chatId: chat.id,
+      consultationId: chat.consultationId,
     };
-
-    // return await this.getMessages({}, user);
   }
 
   async chatHistory(id: string) {
@@ -260,7 +260,7 @@ export class ChatService {
       skip,
       take: dto.limit || 50,
     });
-    return { activeChat, messages };
+    return { activeChat, messages, success: true };
   }
 
   async getMessagesByChatId(dto: GetMessagesByChatIdDto, { id: clientId }: IUser) {
