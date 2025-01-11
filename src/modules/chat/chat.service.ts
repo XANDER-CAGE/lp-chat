@@ -87,7 +87,11 @@ export class ChatService {
       await this.botService.messageViaBot(message.id);
     }
 
-    return await this.getMessages({}, user);
+    return {
+      success: true,
+    };
+
+    // return await this.getMessages({}, user);
   }
 
   async chatHistory(id: string) {
@@ -154,11 +158,15 @@ export class ChatService {
       },
       include: { rejectedChats: true },
     });
+    // console.log(operators);
 
     const chats = await this.prisma.chat.findMany({
       where: { status: 'init', messages: { some: {} } },
       include: { client: true, topic: true },
     });
+
+    console.log(chats);
+
     for (const chat of chats) {
       await this.botService.sendReceiveConversationButton(
         operators,

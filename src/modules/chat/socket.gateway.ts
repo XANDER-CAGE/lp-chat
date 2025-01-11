@@ -3,10 +3,15 @@ import {
   WebSocketServer,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  SubscribeMessage,
+  MessageBody,
+  ConnectedSocket,
 } from '@nestjs/websockets';
 import {
   BadRequestException,
+  forwardRef,
   HttpException,
+  Inject,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -16,6 +21,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CoreApiResponse } from 'src/common/response-class/core-api.response';
 import { message } from '@prisma/client';
 import { UserService } from '../user/user.service';
+import { ChatService } from './chat.service';
 
 @Injectable()
 @WebSocketGateway({
@@ -25,6 +31,8 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly prisma: PrismaService,
     private readonly userService: UserService,
+    @Inject(forwardRef(() => ChatService))
+    private chatService: ChatService,
   ) {}
 
   @WebSocketServer() server: Server = new Server();
@@ -47,6 +55,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.server.to(socket.id).emit('error', data);
       return socket.disconnect();
     }
+
     const result = await this.userService.validate(jwt);
 
     if (!result.success) {
@@ -55,6 +64,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.server.to(socket.id).emit('error', data);
       return socket.disconnect();
     }
+
     const chat = await this.prisma.chat.findFirst({
       where: {
         id: chatId,
@@ -70,6 +80,9 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return socket.disconnect();
     }
 
+    socket['user'] = result.data;
+    socket['chatId'] = chatId;
+    socket['consultationId'] = chat.consultationId;
     this.server.in(socket.id).socketsJoin(chat.id.toString());
   }
 
@@ -98,5 +111,30 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     } catch (error) {
       console.log(error);
     }
+  }
+
+  @SubscribeMessage('message')
+  async sendMessageHandle(@MessageBody() data: any, @ConnectedSocket() client: any) {
+    if (!client?.chatId) {
+      const error = new NotFoundException('Chat not found or already closed');
+      const data = CoreApiResponse.error(error.getResponse());
+      this.server.to(client.id).emit('error', data);
+      return client.disconnect();
+    }
+
+    if (!client?.consultationId) {
+      const error = new NotFoundException('Consultation not found or already closed');
+      const data = CoreApiResponse.error(error.getResponse());
+      this.server.to(client.id).emit('error', data);
+      return client.disconnect();
+    }
+
+    const response = await this.chatService.message(data, client.user);
+
+    if (!response.success) {
+      throw new BadRequestException(response.message);
+    }
+
+    return this.server.to(client.chatId).emit('chat', CoreApiResponse.success(response.data));
   }
 }

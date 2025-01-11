@@ -79,7 +79,8 @@ export class UserService {
       // Check if a user already exists based on userId or doctorId
       let existingUser: any = await this.prisma.user.findFirst({
         where: {
-          OR: [{ userId: dataFromJwt?.userId }, { doctorId: dataFromJwt?.doctorId }],
+          userId: content?.userType === 'user' ? content?.id : null,
+          doctorId: content?.userType === 'doctor' ? content?.id : null,
           isDeleted: false,
         },
       });

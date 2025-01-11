@@ -12,7 +12,8 @@ import { pathToStatic } from 'src/common/var/index.var';
 import { formatMessage } from 'src/common/util/formate-message.util';
 import { usersWithChats } from 'src/common/type/usersWithChats.type';
 import { env } from 'src/common/config/env.config';
-import { SocketGateway } from '../socket/socket.server';
+import { SocketGateway } from '../chat/socket.gateway';
+// import { SocketGateway } from '../socket/socket.server';
 
 @Injectable()
 export class BotService {

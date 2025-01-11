@@ -8,7 +8,7 @@ import { FileModule } from './modules/file/file.module';
 import { UserModule } from './modules/user/user.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TopicModule } from './modules/topic/topic.module';
-import { SocketModule } from './modules/socket/socket.module';
+// import { SocketModule } from './modules/socket/socket.module';
 import { JwtModule } from '@nestjs/jwt';
 
 @Module({
@@ -28,7 +28,7 @@ import { JwtModule } from '@nestjs/jwt';
     }),
     UserModule,
     TopicModule,
-    SocketModule,
+    // SocketModule,
   ],
 })
 export class AppModule {}

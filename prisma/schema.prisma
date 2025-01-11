@@ -266,7 +266,6 @@ model consultation {
   isFree        Boolean?  @default(false) @map("is_free")
   transactionId String?   @map("transaction_id") @db.Uuid
   details       Json?     @map("details")
-  bookedAt      DateTime? @map("booked_at")
   rank          Int?      @map("rank")
   comment       String?   @map("comment")
   topicId       String?   @map("topic_id")
