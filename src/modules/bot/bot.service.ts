@@ -251,6 +251,7 @@ export class BotService {
         operatorId: operator.id,
         userId: chat.clientId,
         topicId: chat.topicId,
+        chatStartedAt: new Date(),
       },
     });
 
