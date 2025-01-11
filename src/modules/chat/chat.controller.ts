@@ -56,6 +56,12 @@ export class ChatController {
     return CoreApiResponse.success(data);
   }
 
+  @Get('get-all-active-operators')
+  async getAllActiveOperators() {
+    const data = await this.chatService.getAllActiveOperators();
+    return CoreApiResponse.success(data);
+  }
+
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
   @Get('list')

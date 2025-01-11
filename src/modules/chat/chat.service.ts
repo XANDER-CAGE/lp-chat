@@ -11,6 +11,7 @@ import { ChatListDto } from './dto/chat-list.dto';
 import { RejectedChatListDto } from './dto/rejectted-chat-list.dto';
 import { objectId } from 'src/common/util/formate-message.util';
 import { IUser } from 'src/common/interface/my-req.interface';
+import { shiftStatus } from '@prisma/client';
 
 @Injectable()
 export class ChatService {
@@ -276,6 +277,29 @@ export class ChatService {
       take: dto.limit || 50,
     });
     return { activeChat, messages };
+  }
+
+  async getAllActiveOperators() {
+    const data = this.prisma.user.findMany({
+      select: {
+        id: true,
+        firstname: true,
+        lastname: true,
+        doctorId: true,
+        userId: true,
+        shiftStatus: true,
+        email: true,
+        phone: true,
+      },
+      where: {
+        shiftStatus: shiftStatus.active,
+        blockedAt: null,
+        approvedAt: { not: null },
+        isDeleted: false,
+      },
+    });
+
+    return data;
   }
 
   // *** Методы аналитики ***
