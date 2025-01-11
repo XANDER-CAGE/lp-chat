@@ -311,7 +311,7 @@ export class BotService {
     });
 
     console.log(activeChat.id, 'active chatId');
-    this.socketGateWay.sendMessageViaSocket(activeChat.id.toString(), message);
+    this.socketGateWay.sendMessageViaSocket(activeChat?.id.toString(), message);
   }
 
   async fileToAPI(ctx: Context): Promise<{ fileId: string; caption: string }> {

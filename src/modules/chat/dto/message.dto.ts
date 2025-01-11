@@ -1,8 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
+import { IsArray, IsOptional, IsString } from 'class-validator';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { Type } from 'class-transformer';
 
-export class CreateMessageDto {
+export class MessageDto {
   @ApiProperty()
   @IsOptional()
   @IsString()
@@ -17,11 +18,17 @@ export class CreateMessageDto {
   @IsOptional()
   @IsString()
   fileId?: string;
+}
 
+export class CreateMessageDto {
   @ApiPropertyOptional()
-  // @IsOptional()
   @IsString()
   consultationId: string;
+
+  @ApiProperty({ type: [MessageDto] })
+  @IsArray()
+  @Type(() => MessageDto)
+  messages: MessageDto[];
 }
 
 export class GetMessagesByChatIdDto extends PaginationDto {

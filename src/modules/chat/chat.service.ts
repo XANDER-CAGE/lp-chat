@@ -21,14 +21,6 @@ export class ChatService {
   ) {}
 
   async message(dto: CreateMessageDto, user: IUser) {
-    let chat: any = await this.prisma.chat.findFirst({
-      where: {
-        clientId: user.id,
-        status: { in: ['active', 'init'] },
-      },
-      include: { messages: true },
-    });
-
     if (dto.consultationId) {
       const consultation = await this.prisma.consultation.findFirst({
         where: { id: dto.consultationId },
@@ -39,6 +31,15 @@ export class ChatService {
       }
     }
 
+    let chat: any = await this.prisma.chat.findFirst({
+      where: {
+        clientId: user.id,
+        status: { in: ['active', 'init'] },
+        consultationId: dto.consultationId,
+      },
+      include: { messages: true },
+    });
+
     if (!chat) {
       chat = await this.chatCreate(
         {
@@ -48,40 +49,43 @@ export class ChatService {
       );
     }
 
-    if (dto.fileId) {
-      const file = await this.prisma.file.findFirst({
-        where: { id: dto.fileId },
-      });
-      if (!file) throw new NotFoundException('File not found');
-    }
-    const message = await this.prisma.message.create({
-      data: <any>{
-        authorId: user.id,
-        chatId: chat.id,
-        id: objectId(),
-        content: dto.content,
-        fileId: dto.fileId,
-        repliedMessageId: dto.repliedMessageId,
-      },
-      include: { chat: true },
-    });
-    if (chat.status == 'init') {
-      const operators = await this.prisma.user.findMany({
-        where: {
-          approvedAt: { not: null },
-          telegramId: { not: null },
-          blockedAt: null,
-          operatorChats: { none: { status: 'active' } },
-          shiftStatus: 'active',
+    for (let mes of dto.messages) {
+      if (mes.fileId) {
+        const file = await this.prisma.file.findFirst({
+          where: { id: mes.fileId },
+        });
+        if (!file) throw new NotFoundException('File not found');
+      }
+      const message = await this.prisma.message.create({
+        data: <any>{
+          authorId: user.id,
+          chatId: chat.id,
+          id: objectId(),
+          content: mes.content,
+          fileId: mes.fileId,
+          repliedMessageId: mes.repliedMessageId,
         },
+        include: { chat: true },
       });
-      const history: any = await this.getMessages({}, user);
-      history.availableOperators = operators.length;
-      const job = this.schedulerRegistry.getCronJob(findOperatorsCronId);
-      job.start();
-      return history;
+      if (chat.status == 'init') {
+        const operators = await this.prisma.user.findMany({
+          where: {
+            approvedAt: { not: null },
+            telegramId: { not: null },
+            blockedAt: null,
+            operatorChats: { none: { status: 'active' } },
+            shiftStatus: 'active',
+          },
+        });
+        const history: any = await this.getMessages({}, user);
+        history.availableOperators = operators.length;
+        const job = this.schedulerRegistry.getCronJob(findOperatorsCronId);
+        job.start();
+        return history;
+      }
+      await this.botService.messageViaBot(message.id);
     }
-    await this.botService.messageViaBot(message.id);
+
     return await this.getMessages({}, user);
   }
 

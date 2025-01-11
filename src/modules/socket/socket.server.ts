@@ -37,6 +37,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.server.to(socket.id).emit('error', data);
       return socket.disconnect();
     }
+
     const jwt = socket?.handshake?.headers?.authorization;
     if (!jwt) {
       const error: HttpException = new BadRequestException(
@@ -48,7 +49,6 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
     const result = await this.userService.validate(jwt);
 
-    console.log(result);
     if (!result.success) {
       const error: HttpException = new UnauthorizedException();
       const data = CoreApiResponse.error(error.getResponse());
@@ -63,13 +63,13 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       },
     });
 
-    console.log(chat);
     if (!chat) {
       const error = new NotFoundException('Chat not found or already closed');
       const data = CoreApiResponse.error(error.getResponse());
       this.server.to(socket.id).emit('error', data);
       return socket.disconnect();
     }
+
     this.server.in(socket.id).socketsJoin(chat.id.toString());
   }
 
