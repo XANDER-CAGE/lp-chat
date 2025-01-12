@@ -23,7 +23,7 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm install --force
+        run: yarn install --force
 
       - name: Set database credentials as environment variables
         env:
@@ -48,11 +48,11 @@ jobs:
           echo "export MINIO_SECRET_KEY=$MINIO_SECRET_KEY" >> .env
 
       - name: Build
-        run: npm run build
+        run: yarn build
 
       - name: Run app
         run: |
-          npm run start:prod & 
+          yarn start:prod & 
           sleep 5
 
   build-and-deploy:
