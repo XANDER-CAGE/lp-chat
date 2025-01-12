@@ -200,14 +200,11 @@ export class ChatService {
       },
       include: { rejectedChats: true },
     });
-    // console.log(operators);
 
     const chats = await this.prisma.chat.findMany({
       where: { status: 'init', messages: { some: {} } },
       include: { client: true, topic: true },
     });
-
-    console.log(chats);
 
     for (const chat of chats) {
       await this.botService.sendReceiveConversationButton(
@@ -338,6 +335,7 @@ export class ChatService {
         chatId: true,
         createdAt: true,
         updatedAt: true,
+        type: true,
         author: {
           select: {
             id: true,

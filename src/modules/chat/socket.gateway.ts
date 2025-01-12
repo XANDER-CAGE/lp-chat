@@ -19,7 +19,6 @@ import {
 import { Server, Socket } from 'socket.io';
 import { PrismaService } from '../prisma/prisma.service';
 import { CoreApiResponse } from 'src/common/response-class/core-api.response';
-import { message } from '@prisma/client';
 import { UserService } from '../user/user.service';
 import { ChatService } from './chat.service';
 import { UpdateMessageDto } from './dto/message.dto';
@@ -91,7 +90,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     console.log(`Socket disconnected: ${socket.id}`);
   }
 
-  sendMessageViaSocket(chatId: string, message: message) {
+  sendMessageViaSocket(chatId: string, message: any) {
     this.server.to(chatId).emit('chat', CoreApiResponse.success(message));
   }
 

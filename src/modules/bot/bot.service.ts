@@ -305,14 +305,36 @@ export class BotService {
         repliedMessageId,
         tgMsgId: tgMessageId.toString(),
       },
-      include: {
-        author: true,
-        repliedMessage: { include: { file: true } },
+      select: {
+        id: true,
+        content: true,
+        chatId: true,
+        createdAt: true,
+        updatedAt: true,
+        type: true,
+        author: {
+          select: {
+            id: true,
+            firstname: true,
+            lastname: true,
+          },
+        },
+        repliedMessage: {
+          select: {
+            id: true,
+            chatId: true,
+            file: true,
+          },
+        },
         file: true,
       },
+      // include: {
+      //   author: true,
+      //   repliedMessage: { include: { file: true } },
+      //   file: true,
+      // },
     });
 
-    console.log(activeChat.id, 'active chatId');
     this.socketGateWay.sendMessageViaSocket(activeChat?.id.toString(), message);
   }
 
