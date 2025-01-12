@@ -50,7 +50,7 @@ export class ChatService {
       );
     }
 
-    for (let mes of dto.messages) {
+    for (const mes of dto.messages) {
       if (mes.fileId) {
         const file = await this.prisma.file.findFirst({
           where: { id: mes.fileId },
@@ -263,27 +263,67 @@ export class ChatService {
     return { activeChat, messages, success: true };
   }
 
-  async getMessagesByChatId(dto: GetMessagesByChatIdDto, { id: clientId }: IUser) {
+  async getMessagesByChatId(dto: GetMessagesByChatIdDto, { id: userId }: IUser) {
     const skip = ((dto.page || 1) - 1) * (dto.limit || 50);
     const activeChat = await this.prisma.chat.findMany({
       where: {
         id: dto.chatId,
-        clientId,
         status: { in: ['active', 'init'] },
         isDeleted: false,
+        OR: [
+          {
+            clientId: userId,
+          },
+          {
+            operatorId: userId,
+          },
+        ],
       },
     });
+
     const messages = await this.prisma.message.findMany({
-      where: { chat: { clientId }, isDeleted: false },
-      include: {
-        author: true,
-        repliedMessage: { include: { file: true } },
+      select: {
+        id: true,
+        content: true,
+        chatId: true,
+        createdAt: true,
+        updatedAt: true,
+        author: {
+          select: {
+            id: true,
+            firstname: true,
+            lastname: true,
+          },
+        },
+        repliedMessage: {
+          select: {
+            id: true,
+            chatId: true,
+            file: true,
+          },
+        },
         file: true,
       },
-      orderBy: { createdAt: 'desc' },
+      where: {
+        chat: {
+          OR: [
+            {
+              clientId: userId,
+            },
+            {
+              operatorId: userId,
+            },
+          ],
+        },
+        isDeleted: false,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
       skip,
       take: dto.limit || 50,
     });
+
     return { activeChat, messages };
   }
 
