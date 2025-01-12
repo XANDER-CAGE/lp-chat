@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsDate, IsOptional, IsString } from 'class-validator';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { Type } from 'class-transformer';
 
@@ -18,6 +18,11 @@ export class MessageDto {
   @IsOptional()
   @IsString()
   fileId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDate()
+  createdAt: Date;
 }
 
 export class CreateMessageDto {

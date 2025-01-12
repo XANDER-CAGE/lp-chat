@@ -65,6 +65,7 @@ export class ChatService {
           content: mes.content,
           fileId: mes.fileId,
           repliedMessageId: mes.repliedMessageId,
+          createdAt: mes.createdAt,
         },
         include: { chat: true },
       });
