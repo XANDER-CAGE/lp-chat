@@ -266,6 +266,14 @@ export class ChatService {
   async getMessagesByChatId(dto: GetMessagesByChatIdDto, { id: userId }: IUser) {
     const skip = ((dto.page || 1) - 1) * (dto.limit || 50);
     const activeChat = await this.prisma.chat.findMany({
+      select: {
+        id: true,
+        consultationId: true,
+        status: true,
+        clientId: true,
+        operatorId: true,
+        topicId: true,
+      },
       where: {
         id: dto.chatId,
         status: { in: ['active', 'init'] },
