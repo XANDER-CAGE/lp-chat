@@ -1,5 +1,8 @@
 export enum MessageTyepEnum {
-  text = 'text',
-  voice = 'voice',
-  calling = 'calling',
+  Text = 'text',
+  Photo = 'photo',
+  Video = 'video',
+  Audio = 'audio',
+  Voice = 'voice',
+  Document = 'document',
 }

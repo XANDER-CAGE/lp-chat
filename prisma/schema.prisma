@@ -47,6 +47,7 @@ model message {
   repliedMessages  message[] @relation("messageTomessage")
   firstname        String?   @map("firstname")
   lastname         String?   @map("lastname")
+  type             String?   @map("type")
 
   isDeleted Boolean   @default(false) @map("is_deleted")
   // Timestamps

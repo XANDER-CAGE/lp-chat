@@ -4,7 +4,7 @@ import { CreateChatDto } from './dto/chat.dto';
 import { User } from 'src/common/decorator/user.decorator';
 import { IdDto } from 'src/common/dto/id.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { CreateMessageDto, GetMessagesByChatIdDto } from './dto/message.dto';
+import { CreateMessageDto, GetMessagesByChatIdDto, UpdateMessageDto } from './dto/message.dto';
 import { CreateRatingDto } from './dto/create-rating.dto';
 import { IUser } from 'src/common/interface/my-req.interface';
 import { CoreApiResponse } from 'src/common/response-class/core-api.response';
@@ -28,13 +28,18 @@ export class ChatController {
 
   @Post()
   async chat(@Body() dto: CreateChatDto, @User() user: IUser) {
-    const data = await this.chatService.chatCreate(dto, user);
-    return CoreApiResponse.success(data);
+    return await this.chatService.chatCreate(dto, user);
   }
 
   @Post('message')
   async message(@Body() dto: CreateMessageDto, @User() user: IUser) {
     const data = await this.chatService.message(dto, user);
+    return CoreApiResponse.success(data);
+  }
+
+  @Post('message-update')
+  async messageUpdate(@Body() dto: UpdateMessageDto, @User() user: IUser) {
+    const data = await this.chatService.updateMessage(dto, user);
     return CoreApiResponse.success(data);
   }
 

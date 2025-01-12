@@ -4,7 +4,7 @@ import { CreateChatDto } from './dto/chat.dto';
 import { BotService } from '../bot/bot.service';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { findOperatorsCronId } from 'src/common/var/index.var';
-import { CreateMessageDto, GetMessagesByChatIdDto } from './dto/message.dto';
+import { CreateMessageDto, GetMessagesByChatIdDto, UpdateMessageDto } from './dto/message.dto';
 import { CreateRatingDto } from './dto/create-rating.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { ChatListDto } from './dto/chat-list.dto';
@@ -12,6 +12,7 @@ import { RejectedChatListDto } from './dto/rejectted-chat-list.dto';
 import { objectId } from 'src/common/util/formate-message.util';
 import { IUser } from 'src/common/interface/my-req.interface';
 import { shiftStatus } from '@prisma/client';
+import { MessageTyepEnum } from './enum';
 
 @Injectable()
 export class ChatService {
@@ -51,12 +52,22 @@ export class ChatService {
     }
 
     for (const mes of dto.messages) {
+      let file: any;
       if (mes.fileId) {
-        const file = await this.prisma.file.findFirst({
+        file = await this.prisma.file.findFirst({
           where: { id: mes.fileId },
         });
         if (!file) throw new NotFoundException('File not found');
       }
+
+      const messageType = this.checkingMessageType(
+        {
+          fileId: mes.fileId,
+          content: mes.content,
+        },
+        file,
+      );
+
       const message = await this.prisma.message.create({
         data: <any>{
           authorId: user.id,
@@ -64,6 +75,7 @@ export class ChatService {
           id: objectId(),
           content: mes.content,
           fileId: mes.fileId,
+          type: messageType,
           repliedMessageId: mes.repliedMessageId,
           createdAt: mes.createdAt,
         },
@@ -93,6 +105,35 @@ export class ChatService {
       chatId: chat.id,
       consultationId: chat.consultationId,
     };
+  }
+
+  async updateMessage({ id, ...dto }: UpdateMessageDto, user: IUser) {
+    let file: any;
+    const existMessage = await this.prisma.message.findFirst({
+      where: { id, isDeleted: false },
+    });
+
+    if (!existMessage) {
+      throw new NotFoundException('Message does not exist');
+    }
+
+    if (dto.fileId) {
+      file = await this.prisma.file.findFirst({
+        where: { id: dto.fileId },
+      });
+      if (!file) throw new NotFoundException('File not found');
+    }
+    const type = this.checkingMessageType(
+      {
+        fileId: dto.fileId,
+        content: dto.content,
+      },
+      file,
+    );
+
+    const updateObj: any = { ...dto, type, updatedAt: new Date(), updatedBy: user.id };
+
+    return this.prisma.message.update({ where: { id }, data: updateObj });
   }
 
   async chatHistory(id: string) {
@@ -337,7 +378,7 @@ export class ChatService {
   }
 
   async getAllActiveOperators() {
-    const data = this.prisma.user.findMany({
+    return this.prisma.user.findMany({
       select: {
         id: true,
         firstname: true,
@@ -355,8 +396,6 @@ export class ChatService {
         isDeleted: false,
       },
     });
-
-    return data;
   }
 
   // *** Методы аналитики ***
@@ -497,5 +536,23 @@ export class ChatService {
       totalRejectedChats: rejectedChats,
       rejectedChatsByOperator,
     };
+  }
+
+  checkingMessageType(
+    data: { fileId: string; content: string },
+    file: { id: string; type: string },
+  ): string | null {
+    const { fileId, content } = data;
+    const { id, type } = file;
+
+    if (content && !fileId && !id) {
+      return MessageTyepEnum.Text;
+    } else if (fileId && id) {
+      if (type.includes('image')) {
+        return MessageTyepEnum.Photo;
+      } else return MessageTyepEnum.Document;
+    }
+
+    return null;
   }
 }

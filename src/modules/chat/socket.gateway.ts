@@ -22,6 +22,7 @@ import { CoreApiResponse } from 'src/common/response-class/core-api.response';
 import { message } from '@prisma/client';
 import { UserService } from '../user/user.service';
 import { ChatService } from './chat.service';
+import { UpdateMessageDto } from './dto/message.dto';
 
 @Injectable()
 @WebSocketGateway({
@@ -136,5 +137,11 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     return this.server.to(client.chatId).emit('chat', CoreApiResponse.success(response.data));
+  }
+
+  @SubscribeMessage('message:update')
+  async updateMessageHandle(@MessageBody() data: UpdateMessageDto, @ConnectedSocket() client: any) {
+    const response = await this.chatService.updateMessage(data, client.user);
+    return this.server.to(client.chatId).emit('chat', CoreApiResponse.success(response));
   }
 }

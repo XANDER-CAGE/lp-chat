@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsDate, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsDate, IsOptional, IsString, Length } from 'class-validator';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { Type } from 'class-transformer';
 
@@ -7,6 +7,7 @@ export class MessageDto {
   @ApiProperty()
   @IsOptional()
   @IsString()
+  @Length(1, 255)
   content?: string;
 
   @ApiProperty()
@@ -22,7 +23,7 @@ export class MessageDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsDate()
-  createdAt: Date;
+  createdAt?: Date;
 }
 
 export class CreateMessageDto {
@@ -40,4 +41,10 @@ export class GetMessagesByChatIdDto extends PaginationDto {
   @ApiProperty()
   @IsString()
   chatId: string;
+}
+
+export class UpdateMessageDto extends MessageDto {
+  @ApiProperty()
+  @IsString()
+  id: string;
 }

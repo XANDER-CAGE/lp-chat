@@ -4,14 +4,18 @@ import { env } from './common/config/env.config';
 import { SwaggerModule } from '@nestjs/swagger';
 import { swaggerConfig } from './common/config/swagger.config';
 import { HttpExceptionFilter } from './common/filter/http.exception-filter';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, VersioningType } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.enableCors({
-    origin: '*',
+
+  // Enable API versioning
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: '1',
+    prefix: 'api/v',
   });
-  app.setGlobalPrefix('api');
+
   const document = SwaggerModule.createDocument(app, swaggerConfig, {
     deepScanRoutes: true,
   });
