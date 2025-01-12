@@ -94,8 +94,8 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(chatId).emit('chat', CoreApiResponse.success(message));
   }
 
-  sendMessageToAcceptOperator(consultationId: string, message: any) {
-    this.server.to(consultationId).emit('accepted', CoreApiResponse.success(message));
+  sendMessageToAcceptOperator(chatId: string, message: any) {
+    this.server.to(chatId).emit('accepted', CoreApiResponse.success(message));
   }
 
   disconnectChatMembers(chatId: string) {

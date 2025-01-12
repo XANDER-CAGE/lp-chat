@@ -268,7 +268,7 @@ export class BotService {
       }
 
       await ctx.reply(formattedMessage, { parse_mode: 'MarkdownV2' });
-      this.socketGateWay.sendMessageToAcceptOperator(chat.consultationId, operator);
+      this.socketGateWay.sendMessageToAcceptOperator(chat.id, operator);
     }
   }
 
