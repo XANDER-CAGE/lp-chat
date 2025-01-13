@@ -94,6 +94,16 @@ export class ChatService {
         const history: any = await this.getMessages({}, user);
         history.availableOperators = operators.length;
         const job = this.schedulerRegistry.getCronJob(findOperatorsCronId);
+
+        await this.prisma.consultation.update({
+          where: {
+            id: dto.consultationId,
+          },
+          data: {
+            chatId: chat.id,
+            topicId: chat.topicId,
+          },
+        });
         job.start();
         return history;
       }

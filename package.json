@@ -26,6 +26,7 @@
     "migration:rollback": "npx prisma migrate dev"
   },
   "dependencies": {
+    "@grammyjs/commands": "^1.0.3",
     "@grammyjs/nestjs": "^0.3.4",
     "@nestjs/common": "^10.4.15",
     "@nestjs/core": "^10.4.15",
@@ -36,7 +37,7 @@
     "@nestjs/schedule": "^4.1.2",
     "@nestjs/swagger": "^8.1.0",
     "@nestjs/websockets": "^10.4.15",
-    "@prisma/client": "6.2.0",
+    "@prisma/client": "^6.2.1",
     "axios": "^1.7.9",
     "bson-objectid": "^2.0.4",
     "class-transformer": "^0.5.1",
@@ -46,6 +47,7 @@
     "envalid": "^8.0.0",
     "grammy": "^1.34.0",
     "husky": "^9.1.7",
+    "install": "^0.13.0",
     "jsonwebtoken": "^9.0.2",
     "jwks-rsa": "^3.1.0",
     "keycloak-connect": "^26.0.7",

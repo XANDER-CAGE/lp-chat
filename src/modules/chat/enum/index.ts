@@ -8,3 +8,9 @@ export enum MessageTyepEnum {
   AcceptOperator = 'acceptOperator',
   Document = 'document',
 }
+
+export enum ConsultationStatus {
+  NEW = 0,
+  IN_PROGRESS = 1,
+  FINISHED = 2,
+}

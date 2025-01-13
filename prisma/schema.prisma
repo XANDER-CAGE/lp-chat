@@ -282,3 +282,40 @@ model consultation {
   @@map("consultations")
   @@schema("consultation")
 }
+
+model Transactions {
+  id             String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId         String    @map("user_id")
+  operatorId     String?   @map("operator_id")
+  amout          Int       @map("amount")
+  provider       String?
+  status         Int
+  payedAmount    Int?      @map("payed_amount")
+  consultationId String?   @map("consultation_id") @db.Uuid
+  expiresAt      DateTime? @default(dbgenerated("now() + interval '2 minutes'")) @map("expires_at")
+
+  @@map("transactions")
+  @@schema("consultation")
+}
+
+model ConsultationOrder {
+  id             String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId         String   @map("user_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  consultationId String   @map("consultation_id")
+  order          Int?     @default(autoincrement())
+  operatorId     String?  @map("operator_id")
+  status         String
+
+  @@map("consultation_order")
+  @@schema("consultation")
+}
+
+model ConsultationOperatorState {
+  id         String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  operatorId String
+  state      String
+
+  @@map("consultation_operator_state")
+  @@schema("consultation")
+}

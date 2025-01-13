@@ -24,6 +24,18 @@ export class BotController {
     await this.botService.commandStart(ctx);
   }
 
+  //
+  @CallbackQuery('queue')
+  async callbackQueue(@Ctx() ctx: Context) {
+    await this.botService.commandQueue(ctx);
+  }
+
+  @Command('queue')
+  async commandQueue(@Ctx() ctx: Context) {
+    await this.botService.commandQueue(ctx);
+  }
+  //
+
   @Command('stop')
   async commandStop(@Ctx() ctx: Context) {
     await this.botService.commandStop(ctx);

@@ -13,6 +13,7 @@ import { formatMessage } from 'src/common/util/formate-message.util';
 import { usersWithChats } from 'src/common/type/usersWithChats.type';
 import { env } from 'src/common/config/env.config';
 import { SocketGateway } from '../chat/socket.gateway';
+import { ConsultationStatus } from '../chat/enum';
 
 @Injectable()
 export class BotService {
@@ -24,6 +25,13 @@ export class BotService {
   ) {}
 
   async onStart(ctx: Context): Promise<void> {
+    const commands = [
+      { command: 'start', description: 'Start the bot 🚀' },
+      { command: 'launch', description: "I\'m ready to get a new client. ✅" },
+      { command: 'stopdialog', description: 'Stop talking to Clint 🛑' },
+      { command: 'queue', description: 'Connecting to a client in the queue 🚶‍♂️🚶‍♀️🚶‍♂️🚶‍♀️🚶‍♂️' },
+    ];
+    await this.bot.api.setMyCommands(commands);
     ctx.reply(`Hey, ${ctx.from.first_name}. I'm ${this.bot.botInfo.first_name}`, {
       reply_markup: {
         inline_keyboard: [
@@ -59,6 +67,113 @@ export class BotService {
       data: { shiftStatus: 'active' },
     });
     return await ctx.reply(`You've activated your status`);
+  }
+
+  async commandQueue(ctx: Context) {
+    const operator = await this.prisma.user.findFirst({
+      where: {
+        telegramId: ctx.from.id.toString(),
+        approvedAt: { not: null },
+        isDeleted: false,
+      },
+    });
+
+    if (!operator) {
+      return ctx.reply('Please /register and(or) wait for the administrator to approve');
+    }
+
+    const order = await this.prisma.consultationOrder.findFirst({
+      where: { status: 'waiting', operatorId: null },
+      orderBy: { order: 'asc' },
+      select: { id: true, consultationId: true },
+    });
+
+    if (!order) {
+      return ctx.reply('No waiting orders are available.');
+    }
+
+    const consultation = await this.prisma.consultation.findFirst({
+      where: { id: order.consultationId },
+    });
+
+    if (!consultation) {
+      return ctx.reply('Consultation data is missing or invalid.');
+    }
+
+    const chat = await this.prisma.chat.findFirst({
+      where: {
+        id: consultation?.chatId,
+        status: 'active',
+        isDeleted: false,
+      },
+    });
+
+    if (chat) {
+      return ctx.reply(`Cannot get a new client dialog open`);
+    }
+
+    const { firstname, lastname } = await this.prisma.user.findFirst({
+      where: { id: chat.clientId, isDeleted: false },
+    });
+
+    const messages = await this.prisma.message.findMany({
+      where: { chatId: chat.id, isDeleted: false },
+      include: { file: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    try {
+      await this.prisma.$transaction(async (trx) => {
+        await trx.consultationOrder.update({
+          data: {
+            status: 'in_progress',
+            operatorId: operator.id,
+          },
+          where: { id: order.id },
+        });
+
+        await trx.consultation.update({
+          where: { id: consultation.id },
+          data: {
+            operatorId: operator.id,
+            status: ConsultationStatus.IN_PROGRESS,
+          },
+        });
+
+        const editedMsgText = `Chat started with *${firstname} ${lastname}*`;
+        await ctx.editMessageText(editedMsgText, { parse_mode: 'MarkdownV2' });
+
+        await trx.consultation.update({
+          where: { id: consultation.id },
+          data: {
+            chatId: chat.id,
+            operatorId: operator.id,
+            userId: chat.clientId,
+            topicId: chat.topicId,
+            chatStartedAt: new Date(),
+          },
+        });
+
+        for (const message of messages) {
+          const formattedMessage = formatMessage({
+            firstname,
+            lastname,
+            topic: consultation.topicId,
+            message: message.content,
+          });
+          if (message.file) {
+            await this.fileToBot(ctx.from.id, message.file, formattedMessage, null);
+            continue;
+          }
+
+          await ctx.reply(formattedMessage, { parse_mode: 'MarkdownV2' });
+          this.socketGateWay.sendMessageToAcceptOperator(chat.id, operator);
+        }
+      });
+    } catch (error) {
+      console.error('Transaction failed:', error);
+      return ctx.reply('An error occurred while processing the request.');
+    }
   }
 
   async commandStop(ctx: Context) {
