@@ -34,7 +34,6 @@ export class BotController {
   async commandQueue(@Ctx() ctx: Context) {
     await this.botService.commandQueue(ctx);
   }
-  //
 
   @Command('stop')
   async commandStop(@Ctx() ctx: Context) {

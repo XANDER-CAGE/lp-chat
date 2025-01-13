@@ -73,7 +73,7 @@ export class ChatController {
     return CoreApiResponse.success(data);
   }
 
-  // @Get('all-messages')
+  @Get('all-messages')
   async allMessages(@Query() dto: PaginationDto, @User() user: IUser) {
     const data = await this.chatService.getMessages(dto, user);
     return CoreApiResponse.success(data);
@@ -97,7 +97,7 @@ export class ChatController {
 
   @Cron(env.FIND_FREE_OPERATORS_CRON_PATTERN, { name: findOperatorsCronId })
   async handleCron() {
-    return this.chatService.findOperatorsCron();
+    // return this.chatService.findOperatorsCron();
   }
 
   @UseGuards(RolesGuard)

@@ -73,9 +73,12 @@ export class BotService {
     const operator = await this.prisma.user.findFirst({
       where: {
         telegramId: ctx.from.id.toString(),
+        blockedAt: null,
         approvedAt: { not: null },
-        isDeleted: false,
+        shiftStatus: 'active',
+        operatorChats: { none: { status: 'active' } },
       },
+      include: { rejectedChats: true },
     });
 
     if (!operator) {
@@ -100,17 +103,34 @@ export class BotService {
       return ctx.reply('Consultation data is missing or invalid.');
     }
 
+    const existChat = await this.prisma.chat.findFirst({
+      where: {
+        status: 'active',
+        isDeleted: false,
+        operatorId: operator.id,
+      },
+    });
+
+    if (existChat) {
+      return ctx.reply(`Cannot get a new client dialog open`);
+    }
+
     const chat = await this.prisma.chat.findFirst({
+      include: { client: true, topic: true },
       where: {
         id: consultation?.chatId,
-        status: 'active',
+        status: 'init',
         isDeleted: false,
       },
     });
 
-    if (chat) {
-      return ctx.reply(`Cannot get a new client dialog open`);
+    if (!chat) {
+      return ctx.reply(`Open chat not found.`);
     }
+
+    await this.sendReceiveConversationButton([operator], chat.client, chat.id, chat.topic.name);
+
+    return;
 
     const { firstname, lastname } = await this.prisma.user.findFirst({
       where: { id: chat.clientId, isDeleted: false },
@@ -139,9 +159,6 @@ export class BotService {
             status: ConsultationStatus.IN_PROGRESS,
           },
         });
-
-        const editedMsgText = `Chat started with *${firstname} ${lastname}*`;
-        await ctx.editMessageText(editedMsgText, { parse_mode: 'MarkdownV2' });
 
         await trx.consultation.update({
           where: { id: consultation.id },
@@ -358,15 +375,35 @@ export class BotService {
       throw new NotFoundException('Consultation not found');
     }
 
-    await this.prisma.consultation.update({
-      where: { id: chat.consultationId },
-      data: {
-        chatId: chat.id,
-        operatorId: operator.id,
-        userId: chat.clientId,
-        topicId: chat.topicId,
-        chatStartedAt: new Date(),
+    const existOrder = await this.prisma.consultationOrder.findFirst({
+      where: {
+        consultationId: chat.consultationId,
       },
+    });
+
+    if (!existOrder) {
+      throw new NotFoundException('Consultation order not found');
+    }
+
+    await this.prisma.$transaction(async (trx) => {
+      await trx.consultation.update({
+        where: { id: chat.consultationId },
+        data: {
+          chatId: chat.id,
+          operatorId: operator.id,
+          userId: chat.clientId,
+          topicId: chat.topicId,
+          chatStartedAt: new Date(),
+          status: ConsultationStatus.IN_PROGRESS,
+        },
+      });
+      await trx.consultationOrder.update({
+        data: {
+          status: 'in_progress',
+          operatorId: operator.id,
+        },
+        where: { id: existOrder.id },
+      });
     });
 
     for (const message of messages) {

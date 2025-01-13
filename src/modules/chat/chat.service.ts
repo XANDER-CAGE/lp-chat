@@ -104,6 +104,13 @@ export class ChatService {
             topicId: chat.topicId,
           },
         });
+        await this.prisma.consultationOrder.create({
+          data: {
+            consultationId: dto.consultationId,
+            userId: user.userId,
+            status: 'waiting',
+          },
+        });
         job.start();
         return history;
       }
@@ -546,17 +553,13 @@ export class ChatService {
     };
   }
 
-  checkingMessageType(
-    data: { fileId: string; content: string },
-    file: { id: string; type: string },
-  ): string | null {
+  checkingMessageType(data: { fileId?: string; content?: string }, file?: any): string | null {
     const { fileId, content } = data;
-    const { id, type } = file;
 
-    if (content && !fileId && !id) {
+    if (content && !fileId && !file?.id) {
       return MessageTyepEnum.Text;
-    } else if (fileId && id) {
-      if (type.includes('image')) {
+    } else if (fileId && file?.id) {
+      if (file?.type.includes('image')) {
         return MessageTyepEnum.Photo;
       } else return MessageTyepEnum.Document;
     }
