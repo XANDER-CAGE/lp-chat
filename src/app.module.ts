@@ -10,6 +10,8 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { TopicModule } from './modules/topic/topic.module';
 // import { SocketModule } from './modules/socket/socket.module';
 import { JwtModule } from '@nestjs/jwt';
+import { AppService } from './app.service';
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
@@ -30,5 +32,7 @@ import { JwtModule } from '@nestjs/jwt';
     TopicModule,
     // SocketModule,
   ],
+  providers: [AppService],
+  controllers: [AppController],
 })
 export class AppModule {}

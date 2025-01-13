@@ -275,7 +275,7 @@ export class ChatService {
 
     const chat = await this.prisma.chat.findFirst({
       where: {
-        clientId: user.id,
+        clientId: user.userId,
         consultationId: dto.consultationId,
         status: { in: ['active', 'init'] },
         isDeleted: false,
@@ -292,7 +292,7 @@ export class ChatService {
         topicId: dto.topicId,
         consultationId: dto.consultationId,
       },
-      include: { messages: true },
+      include: { messages: true, topic: true },
     });
   }
 
