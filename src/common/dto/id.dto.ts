@@ -3,7 +3,7 @@ import { Type } from 'class-transformer';
 import { IsNotEmpty } from 'class-validator';
 
 export class IdDto {
-  @ApiProperty({ example: '1' })
+  @ApiProperty()
   @IsNotEmpty()
   @Type(() => String)
   id: string;
