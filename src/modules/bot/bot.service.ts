@@ -13,7 +13,6 @@ import { formatMessage } from 'src/common/util/formate-message.util';
 import { usersWithChats } from 'src/common/type/usersWithChats.type';
 import { env } from 'src/common/config/env.config';
 import { SocketGateway } from '../chat/socket.gateway';
-// import { SocketGateway } from '../socket/socket.server';
 
 @Injectable()
 export class BotService {
@@ -339,6 +338,15 @@ export class BotService {
   }
 
   async fileToAPI(ctx: Context): Promise<{ fileId: string; caption: string }> {
+    const operator = await this.prisma.user.findFirst({
+      where: {
+        telegramId: ctx.from.id.toString(),
+        approvedAt: { not: null },
+        blockedAt: null,
+        isDeleted: false,
+      },
+    });
+
     const file = await ctx.getFile();
     const caption = ctx.update.message.caption;
     const url = getFileUrl(file.file_path);
@@ -351,7 +359,11 @@ export class BotService {
       originalname: file.file_path.split('/')[1],
       size: file.file_size,
     };
-    const uploadedFile = await this.fileService.upload(uploadingData);
+    const uploadedFile = await this.fileService.upload(uploadingData, {
+      id: operator.id,
+      userId: operator.userId,
+      doctorId: operator.doctorId,
+    });
     return { fileId: uploadedFile.id, caption };
   }
 

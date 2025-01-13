@@ -37,3 +37,10 @@ function escapeSpecialChars(input: string): string {
   const regex = new RegExp(`([\\${specialChars.join('\\')}])`, 'g');
   return input.replace(regex, '\\$1');
 }
+
+export const getBucketName = (): string => {
+  const TodayDate = new Date();
+  const currentYear = TodayDate.getFullYear();
+  const currentMonth = TodayDate.getMonth() + 1;
+  return `${currentYear}-${currentMonth}`.toString();
+};

@@ -15,6 +15,8 @@ import { BufferedFile } from 'src/common/interface/buffered-file.interface';
 import { Response } from 'express';
 import { CoreApiResponse } from 'src/common/response-class/core-api.response';
 import { AuthGuard } from 'src/common/guard/auth.guard';
+import { User } from '../../common/decorator/user.decorator';
+import { IUser } from '../../common/interface/my-req.interface';
 
 @ApiBearerAuth('authorization')
 @ApiTags('Files')
@@ -35,15 +37,15 @@ export class FileController {
       },
     },
   })
-  @Post()
+  @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
-  async upload(@UploadedFile() file: BufferedFile) {
-    const data = await this.fileService.upload(file);
+  async upload(@UploadedFile() file: BufferedFile, @User() user: IUser) {
+    const data = await this.fileService.upload(file, user);
     return CoreApiResponse.success(data);
   }
 
-  @Get()
-  getFile(@Query('fileId') fileId: string, @Res() res: Response) {
-    return this.fileService.getFile(fileId, res);
+  @Get('download')
+  getFile(@Query('fileId') fileId: string, @Res() res: Response, @User() user: IUser) {
+    return this.fileService.download(fileId, res, user);
   }
 }

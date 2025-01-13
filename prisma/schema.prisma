@@ -6,7 +6,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["auth", "chat", "doctor", "consultation"]
+  schemas  = ["auth", "chat", "doctor", "consultation", "file"]
 }
 
 model file {
@@ -16,20 +16,27 @@ model file {
   name       String   @map("name")
   size       Int      @map("size")
   message    message?
+  path       String?
 
   isDeleted Boolean @default(false) @map("is_deleted")
 
   // Timestamps
-  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
   createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamptz
-  // User IDs
-  deletedBy String?   @map("deleted_by") @db.VarChar(24)
   createdBy String?   @map("created_by") @db.VarChar(24)
-  updatedBy String?   @map("updated_by") @db.VarChar(24)
 
-  @@map("file")
-  @@schema("chat")
+  @@map("files")
+  @@schema("file")
+}
+
+model downloadHistory {
+  id        String   @id @default(dbgenerated("generate_object_id()")) @db.VarChar(24)
+  userId    String?  @map("user_id") @db.VarChar(24)
+  doctorId  String?  @map("doctor_id") @db.VarChar(24)
+  fileId    String   @map("file_id") @db.VarChar(24)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("download_history")
+  @@schema("file")
 }
 
 model message {
