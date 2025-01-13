@@ -42,7 +42,7 @@ export class ChatController {
   }
 
   @ApiOperation({ summary: 'Get messages with chatId (client, operator)' })
-  @Get('message-by-chat/:id')
+  @Get('message-by-chat')
   async messageByChaId(@Query() dto: GetMessagesByChatIdDto, @User() user: IUser) {
     const data = await this.chatService.getMessagesByChatId(dto, user);
     return CoreApiResponse.success(data);
