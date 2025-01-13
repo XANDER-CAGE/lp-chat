@@ -119,13 +119,6 @@ export class BotService {
       return ctx.reply(`Cannot get a new client dialog open`);
     }
 
-    let chat: any = await this.prisma.chat.findFirst({
-      where: {
-        id: consultation.chatId,
-        isDeleted: false,
-      },
-      include: { client: true, topic: true },
-    });
     const getClient = await this.prisma.user.findFirst({
       where: { userId: consultation.userId, isDeleted: false, doctorId: null },
     });
@@ -134,7 +127,16 @@ export class BotService {
       return ctx.reply('Client not found or already deleted');
     }
 
-    if (!chat?.id) {
+    let chat: any;
+    if (consultation?.chatId) {
+      chat = await this.prisma.chat.findFirst({
+        where: {
+          id: consultation?.chatId,
+          isDeleted: false,
+        },
+        include: { client: true, topic: true },
+      });
+    } else {
       chat = await this.chatService.chatCreate(
         {
           consultationId: consultation?.id,
