@@ -1,7 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsDate, IsOptional, IsString, Length } from 'class-validator';
+import { IsArray, IsDate, IsEnum, IsOptional, IsString, Length } from 'class-validator';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { Type } from 'class-transformer';
+import { MessageTyepEnum } from '../enum';
 
 export class MessageDto {
   @ApiProperty()
@@ -9,6 +10,12 @@ export class MessageDto {
   @IsString()
   @Length(1, 255)
   content?: string;
+
+  @ApiProperty({
+    default: MessageTyepEnum.Text,
+  })
+  @IsEnum(MessageTyepEnum, { each: true })
+  type: MessageTyepEnum;
 
   @ApiProperty()
   @IsOptional()
