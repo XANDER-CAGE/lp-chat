@@ -13,6 +13,7 @@ import { objectId } from 'src/common/util/formate-message.util';
 import { IUser } from 'src/common/interface/my-req.interface';
 import { shiftStatus } from '@prisma/client';
 import { MessageTyepEnum } from './enum';
+import { SocketGateway } from './socket.gateway';
 
 @Injectable()
 export class ChatService {
@@ -20,7 +21,12 @@ export class ChatService {
     private readonly prisma: PrismaService,
     private readonly botService: BotService,
     private schedulerRegistry: SchedulerRegistry,
+    private socket: SocketGateway,
   ) {}
+
+  async test() {
+    return this.socket.test();
+  }
 
   async message(dto: CreateMessageDto, user: IUser) {
     if (dto.consultationId) {

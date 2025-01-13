@@ -37,6 +37,10 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @WebSocketServer() server: Server = new Server();
 
+  test() {
+    return this.server.emit('test', 'test');
+  }
+
   async handleConnection(socket: Socket) {
     const chatId = socket?.handshake?.query?.chatId?.toString();
     if (!chatId) {

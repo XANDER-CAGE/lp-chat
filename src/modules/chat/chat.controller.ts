@@ -26,6 +26,12 @@ import { AuthGuard } from 'src/common/guard/auth.guard';
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
+  @Get('test')
+  @ApiOperation({ summary: 'Socket listen (test) return test' })
+  sendMessage() {
+    return this.chatService.test();
+  }
+
   // @Post()
   async chat(@Body() dto: CreateChatDto, @User() user: IUser) {
     return await this.chatService.chatCreate(dto, user);
