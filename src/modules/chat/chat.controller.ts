@@ -103,7 +103,7 @@ export class ChatController {
 
   @Cron(env.FIND_FREE_OPERATORS_CRON_PATTERN, { name: findOperatorsCronId })
   async handleCron() {
-    // return this.chatService.findOperatorsCron();
+    return this.chatService.findOperatorsCron();
   }
 
   @UseGuards(RolesGuard)

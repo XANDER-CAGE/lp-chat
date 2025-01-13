@@ -1,5 +1,5 @@
 import { InjectBot } from '@grammyjs/nestjs';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Bot, Context, InputFile, Keyboard } from 'grammy';
 import { PrismaService } from '../prisma/prisma.service';
 import { file, user } from '@prisma/client';
@@ -14,6 +14,7 @@ import { usersWithChats } from 'src/common/type/usersWithChats.type';
 import { env } from 'src/common/config/env.config';
 import { SocketGateway } from '../chat/socket.gateway';
 import { ConsultationStatus } from '../chat/enum';
+import { ChatService } from '../chat/chat.service';
 
 @Injectable()
 export class BotService {
@@ -22,6 +23,8 @@ export class BotService {
     private readonly prisma: PrismaService,
     private readonly fileService: FileService,
     private readonly socketGateWay: SocketGateway,
+    @Inject(forwardRef(() => ChatService))
+    private chatService: ChatService,
   ) {}
 
   async onStart(ctx: Context): Promise<void> {
@@ -115,23 +118,34 @@ export class BotService {
       return ctx.reply(`Cannot get a new client dialog open`);
     }
 
-    const chat = await this.prisma.chat.findFirst({
-      include: { client: true, topic: true },
-      where: {
-        id: consultation?.chatId,
-        status: 'init',
-        isDeleted: false,
-      },
+    let chat: any;
+    const getClient = await this.prisma.user.findFirst({
+      where: { id: consultation.userId, isDeleted: true },
     });
 
-    if (!chat) {
-      return ctx.reply(`Open chat not found.`);
+    if (!consultation.chatId) {
+      chat = await this.chatService.chatCreate(
+        {
+          consultationId: consultation?.id,
+        },
+        getClient,
+      );
     }
+
+    if (!chat) {
+      return ctx.reply('Chat data is missing or invalid.');
+    }
+
+    await this.prisma.consultation.update({
+      where: { id: consultation.id },
+      data: { chatId: chat.id, topicId: chat.topicId },
+    });
 
     await this.sendReceiveConversationButton([operator], chat.client, chat.id, chat.topic.name);
 
-    return;
+    return { success: true };
 
+    // this code needs to be refactored
     const { firstname, lastname } = await this.prisma.user.findFirst({
       where: { id: chat.clientId, isDeleted: false },
     });
@@ -245,6 +259,7 @@ export class BotService {
   }
 
   async contact(ctx: Context, contact: any) {
+    contact.phone_number = contact.phone_number.replace('+', '');
     const exitDoc: any = await this.prisma.$queryRaw`
         select *
         from doctor.doctors as d

@@ -43,6 +43,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async handleConnection(socket: Socket) {
     const chatId = socket?.handshake?.query?.chatId?.toString();
+
     if (!chatId) {
       const error: HttpException = new BadRequestException('"chatId" in params not found');
       const data = CoreApiResponse.error(error.getResponse());
@@ -72,7 +73,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const chat = await this.prisma.chat.findFirst({
       where: {
         id: chatId,
-        status: { in: ['active', 'init'] },
+        // status: { in: ['active', 'init'] },
         clientId: result.data.id,
       },
     });
