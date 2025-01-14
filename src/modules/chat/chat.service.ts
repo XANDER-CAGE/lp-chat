@@ -229,8 +229,6 @@ export class ChatService {
       include: { client: true, topic: true },
     });
 
-    console.log(chats);
-
     for (const chat of chats) {
       await this.botService.sendReceiveConversationButton(
         operators,
@@ -332,7 +330,7 @@ export class ChatService {
 
     const existConsultation = await this.prisma.consultation.findFirst({
       where: {
-        id: dto.consultationId,
+        id: dto?.consultationId,
       },
     });
 
@@ -403,9 +401,7 @@ export class ChatService {
         },
         isDeleted: false,
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+
       skip,
       take: dto.limit || 50,
     });

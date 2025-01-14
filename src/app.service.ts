@@ -14,7 +14,6 @@ export class AppService {
 
     const userId = parseUser.userType === 'user' ? parseUser.id : null;
     const doctorId = parseUser.userType === 'doctor' ? parseUser.id : null;
-    console.log(userId, doctorId, parseUser.userType);
 
     let user = await this.prisma.user.findFirst({
       where: {

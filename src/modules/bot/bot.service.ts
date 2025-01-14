@@ -154,7 +154,7 @@ export class BotService {
       data: { chatId: chat.id, topicId: chat.topicId },
     });
 
-    await this.sendReceiveConversationButton([operator], chat.client, chat.id, chat.topic.name);
+    await this.sendReceiveConversationButton([operator], getClient, chat.id, chat.topic.name);
 
     return { success: true };
 

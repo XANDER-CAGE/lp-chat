@@ -45,8 +45,9 @@ export class CreateMessageDto {
 }
 
 export class GetMessagesByChatIdDto extends PaginationDto {
-  @ApiProperty()
+  @ApiProperty({ default: 'd3761737-05f1-4c53-9576-a69613b8d49d' })
   @IsString()
+  @Length(36)
   consultationId: string;
 }
 
