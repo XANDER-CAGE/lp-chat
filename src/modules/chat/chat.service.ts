@@ -66,22 +66,16 @@ export class ChatService {
         if (!file) throw new NotFoundException('File not found');
       }
 
-      const messageType = this.checkingMessageType(
-        {
-          fileId: mes.fileId,
-          content: mes.content,
-        },
-        file,
-      );
-
       const message = await this.prisma.message.create({
-        data: <any>{
+        data: {
           authorId: user.id,
           chatId: chat.id,
           id: objectId(),
           content: mes.content,
           fileId: mes.fileId,
-          type: messageType,
+          type: mes.type,
+          transactionId: mes.transaction_id,
+          rate: mes.rate || null,
           repliedMessageId: mes.repliedMessageId,
           createdAt: mes.createdAt,
         },

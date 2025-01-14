@@ -55,6 +55,8 @@ model message {
   firstname        String?   @map("firstname")
   lastname         String?   @map("lastname")
   type             String?   @map("type")
+  transactionId    String?   @map("transaction_id")
+  rate             Int?      @map("rate")
 
   isDeleted Boolean   @default(false) @map("is_deleted")
   // Timestamps
