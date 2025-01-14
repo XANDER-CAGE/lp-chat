@@ -25,7 +25,11 @@ import { UpdateMessageDto } from './dto/message.dto';
 
 @Injectable()
 @WebSocketGateway({
-  cors: '*',
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST'],
+    credentials: false,
+  },
 })
 export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
