@@ -364,6 +364,8 @@ export class ChatService {
             id: true,
             firstname: true,
             lastname: true,
+            userId: true,
+            doctorId: true,
           },
         },
         repliedMessage: {
