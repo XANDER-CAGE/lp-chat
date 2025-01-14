@@ -12,7 +12,7 @@ import { RejectedChatListDto } from './dto/rejectted-chat-list.dto';
 import { objectId } from 'src/common/util/formate-message.util';
 import { IUser } from 'src/common/interface/my-req.interface';
 import { shiftStatus } from '@prisma/client';
-import { MessageTyepEnum } from './enum';
+import { MessageTypeEnum } from './enum';
 import { SocketGateway } from './socket.gateway';
 
 @Injectable()
@@ -574,11 +574,11 @@ export class ChatService {
     const { fileId, content } = data;
 
     if (content && !fileId && !file?.id) {
-      return MessageTyepEnum.Text;
+      return MessageTypeEnum.Text;
     } else if (fileId && file?.id) {
       if (file?.type.includes('image')) {
-        return MessageTyepEnum.Photo;
-      } else return MessageTyepEnum.Document;
+        return MessageTypeEnum.Photo;
+      } else return MessageTypeEnum.Document;
     }
 
     return null;

@@ -1,8 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsDate, IsEnum, IsOptional, IsString, Length } from 'class-validator';
+import {
+  IsArray,
+  IsDate,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Length,
+  ValidateIf,
+} from 'class-validator';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { Type } from 'class-transformer';
-import { MessageTyepEnum } from '../enum';
+import { MessageTypeEnum } from '../enum';
 
 export class MessageDto {
   @ApiProperty()
@@ -12,10 +21,10 @@ export class MessageDto {
   content?: string;
 
   @ApiProperty({
-    default: MessageTyepEnum.Text,
+    default: MessageTypeEnum.Text,
   })
-  @IsEnum(MessageTyepEnum, { each: true })
-  type: MessageTyepEnum;
+  @IsEnum(MessageTypeEnum, { each: true })
+  type: MessageTypeEnum;
 
   @ApiProperty()
   @IsOptional()
@@ -31,6 +40,18 @@ export class MessageDto {
   @IsOptional()
   @IsDate()
   createdAt?: Date;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @Length(36)
+  @ValidateIf((x) => x.type == MessageTypeEnum.Payment)
+  transaction_id: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  @ValidateIf((x) => x.type == MessageTypeEnum.Rate)
+  rate: number;
 }
 
 export class CreateMessageDto {
