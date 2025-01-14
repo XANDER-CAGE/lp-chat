@@ -8,7 +8,7 @@ export function formatMessage(dto: {
   topic: string;
   message: string;
 }): string {
-  const base = `From: *${dto.firstname} ${dto.lastname}*\nTopic: _${dto.topic}_`;
+  const base = `From: *${dto?.firstname} ${dto?.lastname}*\nTopic: _${dto.topic}_`;
   if (!dto.message) return base;
   dto.message = escapeSpecialChars(dto.message);
   return dto.message ? base + `\nMessage: ${dto.message}` : base;

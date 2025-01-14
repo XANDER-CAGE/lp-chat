@@ -483,7 +483,7 @@ export class ChatService {
 
     return activeOperators.map((operator) => ({
       operatorId: operator.id,
-      name: `${operator.firstname} ${operator.lastname}`,
+      name: `${operator?.firstname} ${operator?.lastname}`,
       activeChats: operator.operatorChats.length,
       rejectedChats: operator.rejectedChats.length,
     }));

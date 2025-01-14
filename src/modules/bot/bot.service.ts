@@ -340,7 +340,7 @@ export class BotService {
       }
       const data = await this.bot.api.sendMessage(
         operator.telegramId,
-        `From: *${client.firstname} ${client.lastname}*\nTopic: _${topic}_
+        `From: *${client?.firstname} ${client?.lastname}*\nTopic: _${topic}_
         `,
         {
           reply_markup: {
@@ -621,7 +621,7 @@ export class BotService {
       where: { id: chat.id },
       data: { status: 'done' },
     });
-    const text = `Dialog with *${chat.client.firstname} ${chat.client.lastname}* stopped`;
+    const text = `Dialog with *${chat?.client?.firstname} ${chat?.client?.lastname}* stopped`;
     return await ctx.reply(text, { parse_mode: 'MarkdownV2' });
   }
 
