@@ -16,6 +16,10 @@ async function bootstrap() {
     prefix: 'api/v',
   });
 
+  app.enableCors({
+    origin: '*',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+  });
   const document = SwaggerModule.createDocument(app, swaggerConfig, {
     deepScanRoutes: true,
   });
