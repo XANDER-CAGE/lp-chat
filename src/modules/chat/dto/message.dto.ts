@@ -47,7 +47,7 @@ export class CreateMessageDto {
 export class GetMessagesByChatIdDto extends PaginationDto {
   @ApiProperty()
   @IsString()
-  chatId: string;
+  consultationId: string;
 }
 
 export class UpdateMessageDto extends MessageDto {

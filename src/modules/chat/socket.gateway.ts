@@ -42,10 +42,10 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   async handleConnection(socket: Socket) {
-    const chatId = socket?.handshake?.query?.chatId?.toString();
+    const consultationId = socket?.handshake?.query?.consultationId?.toString();
 
-    if (!chatId) {
-      const error: HttpException = new BadRequestException('"chatId" in params not found');
+    if (!consultationId) {
+      const error: HttpException = new BadRequestException('"consultationId" in params not found');
       const data = CoreApiResponse.error(error.getResponse());
       this.server.to(socket.id).emit('error', data);
       return socket.disconnect();
@@ -70,48 +70,46 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return socket.disconnect();
     }
 
-    const chat = await this.prisma.chat.findFirst({
+    const exitConsultation = await this.prisma.consultation.findFirst({
       where: {
-        id: chatId,
-        // status: { in: ['active', 'init'] },
-        clientId: result.data.id,
+        id: consultationId,
       },
     });
 
-    if (!chat) {
-      const error = new NotFoundException('Chat not found or already closed');
+    if (!exitConsultation?.id) {
+      const error = new NotFoundException('Consultation not found or already closed');
       const data = CoreApiResponse.error(error.getResponse());
       this.server.to(socket.id).emit('error', data);
       return socket.disconnect();
     }
 
     socket['user'] = result.data;
-    socket['chatId'] = chatId;
-    socket['consultationId'] = chat.consultationId;
-    this.server.in(socket.id).socketsJoin(chat.id.toString());
+    socket['chatId'] = exitConsultation?.chatId;
+    socket['consultationId'] = consultationId;
+    this.server.in(socket.id).socketsJoin(consultationId.toString());
   }
 
   async handleDisconnect(socket: Socket): Promise<void> {
     console.log(`Socket disconnected: ${socket.id}`);
   }
 
-  sendMessageViaSocket(chatId: string, message: any) {
-    this.server.to(chatId).emit('chat', CoreApiResponse.success(message));
+  sendMessageViaSocket(consultationId: string, message: any) {
+    this.server.to(consultationId).emit('chat', CoreApiResponse.success(message));
   }
 
-  sendMessageToAcceptOperator(chatId: string, message: any) {
-    this.server.to(chatId).emit('accepted', CoreApiResponse.success(message));
+  sendMessageToAcceptOperator(consultationId: string, message: any) {
+    this.server.to(consultationId).emit('accepted', CoreApiResponse.success(message));
   }
 
-  disconnectChatMembers(chatId: string) {
+  disconnectChatMembers(consultationId: string) {
     try {
-      const room = this.server.sockets.adapter.rooms.get(chatId.toString());
+      const room = this.server.sockets.adapter.rooms.get(consultationId.toString());
       if (!room) throw 'Room not found';
       room.forEach((socketId) => {
         const client = this.server.sockets.sockets.get(socketId);
         if (!client) throw 'There is no client';
         client.disconnect();
-        console.log(`members of chat ${chatId} disconnected`);
+        console.log(`members of chat ${consultationId} disconnected`);
       });
     } catch (error) {
       console.log(error);
@@ -120,13 +118,6 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('message')
   async sendMessageHandle(@MessageBody() data: any, @ConnectedSocket() client: any) {
-    if (!client?.chatId) {
-      const error = new NotFoundException('Chat not found or already closed');
-      const data = CoreApiResponse.error(error.getResponse());
-      this.server.to(client.id).emit('error', data);
-      return client.disconnect();
-    }
-
     if (!client?.consultationId) {
       const error = new NotFoundException('Consultation not found or already closed');
       const data = CoreApiResponse.error(error.getResponse());
@@ -140,12 +131,14 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       throw new BadRequestException(response.message);
     }
 
-    return this.server.to(client.chatId).emit('chat', CoreApiResponse.success(response.data));
+    return this.server
+      .to(client.consultationId)
+      .emit('chat', CoreApiResponse.success(response.data));
   }
 
   @SubscribeMessage('message:update')
   async updateMessageHandle(@MessageBody() data: UpdateMessageDto, @ConnectedSocket() client: any) {
     const response = await this.chatService.updateMessage(data, client.user);
-    return this.server.to(client.chatId).emit('chat', CoreApiResponse.success(response));
+    return this.server.to(client.consultationId).emit('chat', CoreApiResponse.success(response));
   }
 }

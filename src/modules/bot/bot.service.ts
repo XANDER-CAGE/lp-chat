@@ -381,6 +381,11 @@ export class BotService {
     if (!chat) {
       return ctx.editMessageText('Chat already started with other operator');
     }
+
+    if (!chat?.consultationId) {
+      return ctx.editMessageText('User consultation not found');
+    }
+
     const operator = await this.prisma.user.findFirst({
       where: { telegramId: ctx.from.id.toString(), isDeleted: false },
     });
@@ -403,37 +408,17 @@ export class BotService {
       throw new NotFoundException('Consultation not found');
     }
 
-    const existOrder = await this.prisma.consultationOrder.findFirst({
-      where: {
-        consultationId: chat.consultationId,
+    await this.prisma.consultation.update({
+      where: { id: chat.consultationId },
+      data: {
+        chatId: chat.id,
+        operatorId: operator.id,
+        userId: chat.clientId,
+        topicId: chat.topicId,
+        chatStartedAt: new Date(),
+        status: ConsultationStatus.IN_PROGRESS,
       },
     });
-
-    if (!existOrder) {
-      throw new NotFoundException('Consultation order not found');
-    }
-
-    await this.prisma.$transaction(async (trx) => {
-      await trx.consultation.update({
-        where: { id: chat.consultationId },
-        data: {
-          chatId: chat.id,
-          operatorId: operator.id,
-          userId: chat.clientId,
-          topicId: chat.topicId,
-          chatStartedAt: new Date(),
-          status: ConsultationStatus.IN_PROGRESS,
-        },
-      });
-      await trx.consultationOrder.update({
-        data: {
-          status: 'in_progress',
-          operatorId: operator.id,
-        },
-        where: { id: existOrder.id },
-      });
-    });
-
     for (const message of messages) {
       const formattedMessage = formatMessage({
         firstname,
@@ -447,7 +432,7 @@ export class BotService {
       }
 
       await ctx.reply(formattedMessage, { parse_mode: 'MarkdownV2' });
-      this.socketGateWay.sendMessageToAcceptOperator(chat.id, operator);
+      this.socketGateWay.sendMessageToAcceptOperator(chat?.consultationId, operator);
     }
   }
 
@@ -465,6 +450,9 @@ export class BotService {
       where: { status: 'active', operatorId: operator.id, isDeleted: false },
     });
     if (!activeChat) return ctx.reply('No active chats');
+
+    if (!activeChat?.consultationId) return ctx.reply('Client consultation not found');
+
     const repliedMessageTgId = ctx.update?.message?.reply_to_message?.message_id;
     const tgMessageId = ctx.update?.message?.message_id;
     let repliedMessageId: string;
@@ -514,7 +502,7 @@ export class BotService {
       // },
     });
 
-    this.socketGateWay.sendMessageViaSocket(activeChat?.id.toString(), message);
+    this.socketGateWay.sendMessageViaSocket(activeChat?.consultationId.toString(), message);
   }
 
   async fileToAPI(ctx: Context): Promise<{ fileId: string; caption: string }> {

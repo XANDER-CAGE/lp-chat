@@ -229,6 +229,8 @@ export class ChatService {
       include: { client: true, topic: true },
     });
 
+    console.log(chats);
+
     for (const chat of chats) {
       await this.botService.sendReceiveConversationButton(
         operators,
@@ -327,6 +329,17 @@ export class ChatService {
 
   async getMessagesByChatId(dto: GetMessagesByChatIdDto, { id: userId }: IUser) {
     const skip = ((dto.page || 1) - 1) * (dto.limit || 50);
+
+    const existConsultation = await this.prisma.consultation.findFirst({
+      where: {
+        id: dto.consultationId,
+      },
+    });
+
+    if (!existConsultation || !existConsultation?.chatId) {
+      throw new NotFoundException('ChatId not found');
+    }
+
     const activeChat = await this.prisma.chat.findMany({
       select: {
         id: true,
@@ -337,7 +350,7 @@ export class ChatService {
         topicId: true,
       },
       where: {
-        id: dto.chatId,
+        id: existConsultation.chatId,
         status: { in: ['active', 'init'] },
         isDeleted: false,
         OR: [
