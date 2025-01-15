@@ -26,7 +26,7 @@ import { UpdateMessageDto } from './dto/message.dto';
 @Injectable()
 @WebSocketGateway({
   cors: {
-    origin: ['https://dev.davoai.uz'],
+    origin: ['https://dev.davoai.uz', 'https://davoai.uz'],
     methods: ['GET', 'POST'],
     credentials: true,
   },
