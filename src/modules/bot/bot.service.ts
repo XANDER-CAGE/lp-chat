@@ -347,31 +347,41 @@ export class BotService {
       throw new NotFoundException('Consultation not found');
     }
 
-    await this.prisma.consultation.update({
-      where: { id: chat.consultationId },
-      data: {
-        chatId: chat.id,
-        operatorId: operator.id,
-        topicId: chat.topicId,
-        chatStartedAt: new Date(),
-        status: ConsultationStatus.IN_PROGRESS,
-      },
-    });
-    for (const message of messages) {
-      const formattedMessage = formatMessage({
-        firstname,
-        lastname,
-        topic: chat.topic.name,
-        message: message.content,
+    await this.prisma.$transaction(async (trx) => {
+      await trx.consultation.update({
+        where: { id: chat.consultationId },
+        data: {
+          chatId: chat.id,
+          operatorId: operator.id,
+          topicId: chat.topicId,
+          chatStartedAt: new Date(),
+          status: ConsultationStatus.IN_PROGRESS,
+        },
       });
-      if (message.file) {
-        await this.fileToBot(ctx.from.id, message.file, formattedMessage, null);
-        continue;
+
+      for (const message of messages) {
+        const formattedMessage = formatMessage({
+          firstname,
+          lastname,
+          topic: chat.topic.name,
+          message: message.content,
+        });
+        if (message.file) {
+          await this.fileToBot(ctx.from.id, message.file, formattedMessage, null);
+          continue;
+        }
+
+        await ctx.reply(formattedMessage, { parse_mode: 'MarkdownV2' });
+        this.socketGateWay.sendMessageToAcceptOperator(chat?.consultationId, operator);
       }
 
-      await ctx.reply(formattedMessage, { parse_mode: 'MarkdownV2' });
-      this.socketGateWay.sendMessageToAcceptOperator(chat?.consultationId, operator);
-    }
+      await trx.user.update({
+        where: { id: operator?.id },
+        data: {
+          shiftStatus: 'inactive',
+        },
+      });
+    });
   }
 
   async handleMessage(ctx: Context, fileId?: string, caption?: string) {
