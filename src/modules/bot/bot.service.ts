@@ -157,67 +157,6 @@ export class BotService {
     await this.sendReceiveConversationButton([operator], getClient, chat.id, chat.topic.name);
 
     return { success: true };
-
-    // this code needs to be refactored
-    const { firstname, lastname } = await this.prisma.user.findFirst({
-      where: { id: chat.clientId, isDeleted: false },
-    });
-
-    const messages = await this.prisma.message.findMany({
-      where: { chatId: chat.id, isDeleted: false },
-      include: { file: true },
-      orderBy: { createdAt: 'asc' },
-    });
-
-    try {
-      await this.prisma.$transaction(async (trx) => {
-        await trx.consultationOrder.update({
-          data: {
-            status: 'in_progress',
-            operatorId: operator.id,
-          },
-          where: { id: order.id },
-        });
-
-        await trx.consultation.update({
-          where: { id: consultation.id },
-          data: {
-            operatorId: operator.id,
-            status: ConsultationStatus.IN_PROGRESS,
-          },
-        });
-
-        await trx.consultation.update({
-          where: { id: consultation.id },
-          data: {
-            chatId: chat.id,
-            operatorId: operator.id,
-            userId: chat.clientId,
-            topicId: chat.topicId,
-            chatStartedAt: new Date(),
-          },
-        });
-
-        for (const message of messages) {
-          const formattedMessage = formatMessage({
-            firstname,
-            lastname,
-            topic: consultation.topicId,
-            message: message.content,
-          });
-          if (message.file) {
-            await this.fileToBot(ctx.from.id, message.file, formattedMessage, null);
-            continue;
-          }
-
-          await ctx.reply(formattedMessage, { parse_mode: 'MarkdownV2' });
-          this.socketGateWay.sendMessageToAcceptOperator(chat.id, operator);
-        }
-      });
-    } catch (error) {
-      console.error('Transaction failed:', error);
-      return ctx.reply('An error occurred while processing the request.');
-    }
   }
 
   async commandStop(ctx: Context) {

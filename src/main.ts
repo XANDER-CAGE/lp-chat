@@ -16,9 +16,11 @@ async function bootstrap() {
     prefix: 'api/v',
   });
 
+  // Optionally enable CORS for HTTP endpoints
   app.enableCors({
-    origin: '*',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    origin: ['https://dev.davoai.uz', 'https://davoai.uz'],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
   });
   const document = SwaggerModule.createDocument(app, swaggerConfig, {
     deepScanRoutes: true,
