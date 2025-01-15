@@ -213,6 +213,8 @@ export class ChatService {
         // await this.botService.messageViaBot(message.id);
       }
 
+      await this.getAllActiveOperators();
+
       return {
         success: true,
         chatId: chat.id,
