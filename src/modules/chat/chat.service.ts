@@ -552,9 +552,7 @@ export class ChatService {
           and chu.shift_status = 'active'
     `;
 
-    if (data?.length) {
-      this.socket.sendActiveOperatorsViaSocket(data);
-    }
+    this.socket.sendActiveOperatorsViaSocket(data || []);
 
     return data;
   }
