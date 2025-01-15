@@ -81,8 +81,9 @@ export class BotController {
     const [callback, data] = ctx.callbackQuery.data.split('$');
     if (callback == 'receive') {
       return this.botService.receive(ctx, data);
-    } else if (callback == 'reject') {
-      return this.botService.reject(ctx, data);
     }
+    // else if (callback == 'reject') {
+    //   return this.botService.reject(ctx, data);
+    // }
   }
 }

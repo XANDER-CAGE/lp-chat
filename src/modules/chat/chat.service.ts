@@ -121,6 +121,106 @@ export class ChatService {
     };
   }
 
+  async startChatWithOperator(dto: CreateMessageDto, user: IUser) {
+    const consultation = await this.prisma.consultation.findFirst({
+      where: { id: dto.consultationId },
+    });
+
+    if (!consultation?.id) {
+      throw new NotFoundException('Consultation not found');
+    }
+
+    const operator = await this.prisma.user.findFirst({
+      where: {
+        id: dto.operatorId,
+        blockedAt: null,
+        approvedAt: { not: null },
+        telegramId: { not: null },
+        shiftStatus: 'active',
+        operatorChats: { none: { status: 'active' } },
+      },
+      include: { rejectedChats: true },
+    });
+
+    if (!operator) {
+      throw new NotFoundException('Operator not found');
+    }
+
+    let chat: any = await this.prisma.chat.findFirst({
+      where: {
+        clientId: user.id,
+        status: { in: ['active', 'init'] },
+        consultationId: dto.consultationId,
+      },
+      include: { messages: true, client: true },
+    });
+
+    return this.prisma.$transaction(async (trx) => {
+      if (!chat) {
+        chat = await this.chatCreate(
+          {
+            consultationId: dto.consultationId,
+          },
+          user,
+          trx,
+        );
+      }
+
+      // console.log(chat);
+
+      await trx.consultation.update({
+        where: {
+          id: dto.consultationId,
+        },
+        data: {
+          chatId: chat.id,
+          topicId: chat.topicId,
+        },
+      });
+
+      for (const mes of dto.messages) {
+        let file: any;
+        if (mes.fileId) {
+          file = await this.prisma.file.findFirst({
+            where: { id: mes.fileId },
+          });
+          if (!file) throw new NotFoundException('File not found');
+        }
+
+        await trx.message.create({
+          data: {
+            authorId: user.id,
+            chatId: chat.id,
+            id: objectId(),
+            content: mes.content,
+            fileId: mes.fileId,
+            type: mes.type,
+            transactionId: mes.transaction_id,
+            rate: mes.rate || null,
+            repliedMessageId: mes.repliedMessageId,
+            createdAt: mes.createdAt,
+          },
+          include: { chat: true },
+        });
+
+        await this.botService.sendReceiveConversationButton(
+          [operator],
+          chat.client,
+          chat.id,
+          chat.topic.name,
+        );
+
+        // await this.botService.messageViaBot(message.id);
+      }
+
+      return {
+        success: true,
+        chatId: chat.id,
+        consultationId: chat.consultationId,
+      };
+    });
+  }
+
   async updateMessage({ id, ...dto }: UpdateMessageDto, user: IUser) {
     let file: any;
     const existMessage = await this.prisma.message.findFirst({
@@ -235,7 +335,40 @@ export class ChatService {
     }
   }
 
-  async chatCreate(dto: CreateChatDto, user: IUser) {
+  async findOperatorsAndSendToClient(operatorId: string, chatId: string) {
+    const operators = await this.prisma.user.findMany({
+      where: {
+        id: operatorId,
+        blockedAt: null,
+        approvedAt: { not: null },
+        telegramId: { not: null },
+        shiftStatus: 'active',
+        operatorChats: { none: { status: 'active' } },
+      },
+      include: { rejectedChats: true },
+    });
+
+    const chats = await this.prisma.chat.findMany({
+      where: { id: chatId, status: 'init', messages: { some: {} } },
+      include: { client: true, topic: true },
+    });
+
+    for (const chat of chats) {
+      await this.botService.sendReceiveConversationButton(
+        operators,
+        chat.client,
+        chat.id,
+        chat.topic.name,
+      );
+    }
+    return {
+      success: true,
+    };
+  }
+
+  async chatCreate(dto: CreateChatDto, user: IUser, trx = null) {
+    trx = trx ? trx : this.prisma;
+
     if (dto.topicId) {
       const topic = await this.prisma.topic.findFirst({
         where: { id: dto.topicId, isDeleted: false },
@@ -246,7 +379,7 @@ export class ChatService {
         where: { name: 'other', isDeleted: false },
       });
       if (!topic) {
-        topic = await this.prisma.topic.create({
+        topic = await trx.topic.create({
           data: {
             id: objectId(),
             name: 'other',
@@ -271,11 +404,11 @@ export class ChatService {
         status: { in: ['active', 'init'] },
         isDeleted: false,
       },
-      include: { messages: true },
+      include: { messages: true, client: true, topic: true },
     });
     if (chat) return chat;
 
-    return this.prisma.chat.create({
+    return trx.chat.create({
       data: {
         id: objectId(),
         status: 'init',
@@ -283,7 +416,7 @@ export class ChatService {
         topicId: dto.topicId,
         consultationId: dto.consultationId,
       },
-      include: { messages: true, topic: true },
+      include: { messages: true, topic: true, client: true },
     });
   }
 
@@ -402,20 +535,26 @@ export class ChatService {
   }
 
   async getAllActiveOperators() {
-    return this.prisma.$queryRaw`
-          select chu.id,
-             chu.shift_status,
-             chu.user_id,
-             chu.doctor_id,
-             chu.lastname,
-             chu.firstname,
-             chu.phone,
-             to_json(ct.*) as transaction_info
-      from chat."user" as chu
-               left join consultation.transactions as ct on ct.operator_id = chu.id and ct.status = 0
-      where chu.is_deleted is false
-        and chu.shift_status = 'active'
+    const data: any[] = await this.prisma.$queryRaw`
+        select chu.id,
+               chu.shift_status,
+               chu.user_id,
+               chu.doctor_id,
+               chu.firstname,
+               chu.phone,
+               to_json(ct.*) as transaction_info
+        from chat."user" as chu
+                 left join consultation.transactions as ct
+                           on ct.operator_id = chu.id and ct.status = 0 and ct.expires_at <= now()
+        where chu.is_deleted is false
+          and chu.shift_status = 'active'
     `;
+
+    if (data?.length) {
+      this.socket.sendActiveOperatorsViaSocket(data);
+    }
+
+    return data;
   }
 
   // *** Методы аналитики ***

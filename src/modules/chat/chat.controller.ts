@@ -14,10 +14,10 @@ import { RolesGuard } from 'src/common/guard/roles.guard';
 import { Role } from 'src/common/enum/role.enum';
 import { ChatListDto } from './dto/chat-list.dto';
 import { RejectedChatListDto } from './dto/rejectted-chat-list.dto';
-import { Cron } from '@nestjs/schedule';
-import { findOperatorsCronId } from 'src/common/var/index.var';
-import { env } from 'src/common/config/env.config';
 import { AuthGuard } from 'src/common/guard/auth.guard';
+import { findOperatorsCronId } from '../../common/var/index.var';
+import { Cron } from '@nestjs/schedule';
+import { env } from '../../common/config/env.config';
 
 @ApiTags('Chat')
 @Controller('chat')
@@ -41,9 +41,18 @@ export class ChatController {
     summary:
       'Create messages with chatId (client, operator). There is also a socket version of this app.',
   })
-  @Post('message')
+  @Post('messageOldLogic')
   async message(@Body() dto: CreateMessageDto, @User() user: IUser) {
     const data = await this.chatService.message(dto, user);
+    return CoreApiResponse.success(data);
+  }
+
+  @ApiOperation({
+    summary: 'Start chat new logic',
+  })
+  @Post('start')
+  async startChatWithOperator(@Body() dto: CreateMessageDto, @User() user: IUser) {
+    const data = await this.chatService.startChatWithOperator(dto, user);
     return CoreApiResponse.success(data);
   }
 
@@ -102,8 +111,9 @@ export class ChatController {
   }
 
   @Cron(env.FIND_FREE_OPERATORS_CRON_PATTERN, { name: findOperatorsCronId })
-  async handleCron() {
-    return this.chatService.findOperatorsCron();
+  async handleCronSendActiveOperators() {
+    // return this.chatService.findOperatorsCron();
+    return this.chatService.getAllActiveOperators();
   }
 
   @UseGuards(RolesGuard)

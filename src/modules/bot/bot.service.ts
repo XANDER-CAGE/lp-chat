@@ -285,13 +285,14 @@ export class BotService {
           reply_markup: {
             inline_keyboard: [
               [{ text: 'Receive', callback_data: `receive$${chatId}` }],
-              [{ text: 'Reject', callback_data: `reject$${chatId}` }],
+              // [{ text: 'Reject', callback_data: `reject$${chatId}` }],
             ],
             one_time_keyboard: true,
           },
           parse_mode: 'MarkdownV2',
         },
       );
+
       messageToDelete
         ? await this.prisma.messageToDelete.update({
             where: { id: messageToDelete.id },

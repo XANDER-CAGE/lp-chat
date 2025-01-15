@@ -121,6 +121,10 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  sendActiveOperatorsViaSocket(message: any) {
+    return this.server.emit('getActiveOperator', CoreApiResponse.success(message));
+  }
+
   @SubscribeMessage('message')
   async sendMessageHandle(@MessageBody() data: any, @ConnectedSocket() client: any) {
     if (!client?.consultationId) {

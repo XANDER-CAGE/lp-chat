@@ -59,6 +59,10 @@ export class CreateMessageDto {
   @IsString()
   consultationId: string;
 
+  @ApiPropertyOptional()
+  @IsString()
+  operatorId: string;
+
   @ApiProperty({ type: [MessageDto] })
   @IsArray()
   @Type(() => MessageDto)
