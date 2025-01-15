@@ -18,9 +18,9 @@ export class FileService {
 
   async upload(file: BufferedFile, user: IUser) {
     const mimeType = file.mimetype;
-    if (!mimeType.includes('image')) {
-      throw new ForbiddenException('Only image files are allowed');
-    }
+    // if (!mimeType.includes('image')) {
+    //   throw new ForbiddenException('Only image files are allowed');
+    // }
 
     const orginalName: string = file.originalname.trim().replace(' ', '');
     const fileBuffer = file.buffer;

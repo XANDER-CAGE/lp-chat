@@ -365,6 +365,7 @@ export class ChatService {
         createdAt: true,
         updatedAt: true,
         type: true,
+        rate: true,
         author: {
           select: {
             id: true,
