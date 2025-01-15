@@ -22,6 +22,7 @@ import { CoreApiResponse } from 'src/common/response-class/core-api.response';
 import { UserService } from '../user/user.service';
 import { ChatService } from './chat.service';
 import { UpdateMessageDto } from './dto/message.dto';
+import { ConsultationStatus } from './enum';
 
 @Injectable()
 @WebSocketGateway({
@@ -127,6 +128,20 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const data = CoreApiResponse.error(error.getResponse());
       this.server.to(client.id).emit('error', data);
       return client.disconnect();
+    }
+
+    const existConsultation = await this.prisma.consultation.findFirst({
+      where: {
+        id: client?.consultationId,
+      },
+    });
+
+    if (!existConsultation) {
+      throw new BadRequestException('Consultation not found or already closed');
+    }
+
+    if (existConsultation.status === ConsultationStatus.NEW) {
+      throw new BadRequestException('Can not send message');
     }
 
     const response = await this.chatService.message(data, client.user);
