@@ -11,7 +11,6 @@ import { ChatListDto } from './dto/chat-list.dto';
 import { RejectedChatListDto } from './dto/rejectted-chat-list.dto';
 import { objectId } from 'src/common/util/formate-message.util';
 import { IUser } from 'src/common/interface/my-req.interface';
-import { shiftStatus } from '@prisma/client';
 import { MessageTypeEnum } from './enum';
 import { SocketGateway } from './socket.gateway';
 
@@ -404,24 +403,20 @@ export class ChatService {
   }
 
   async getAllActiveOperators() {
-    return this.prisma.user.findMany({
-      select: {
-        id: true,
-        firstname: true,
-        lastname: true,
-        doctorId: true,
-        userId: true,
-        shiftStatus: true,
-        email: true,
-        phone: true,
-      },
-      where: {
-        shiftStatus: shiftStatus.active,
-        blockedAt: null,
-        approvedAt: { not: null },
-        isDeleted: false,
-      },
-    });
+    return this.prisma.$queryRaw`
+          select chu.id,
+             chu.shift_status,
+             chu.user_id,
+             chu.doctor_id,
+             chu.lastname,
+             chu.firstname,
+             chu.phone,
+             to_json(ct.*) as transaction_info
+      from chat."user" as chu
+               left join consultation.transactions as ct on ct.operator_id = chu.id and ct.status = 0
+      where chu.is_deleted is false
+        and chu.shift_status = 'active'
+    `;
   }
 
   // *** Методы аналитики ***
