@@ -28,14 +28,12 @@ export class ChatService {
   }
 
   async message(dto: CreateMessageDto, user: IUser) {
-    if (dto.consultationId) {
-      const consultation = await this.prisma.consultation.findFirst({
-        where: { id: dto.consultationId },
-      });
+    const consultation = await this.prisma.consultation.findFirst({
+      where: { id: dto.consultationId },
+    });
 
-      if (!consultation?.id) {
-        throw new NotFoundException('Consultation not found');
-      }
+    if (!consultation?.id) {
+      throw new NotFoundException('Consultation not found');
     }
 
     let chat: any = await this.prisma.chat.findFirst({
@@ -221,8 +219,6 @@ export class ChatService {
       where: { status: 'init', messages: { some: {} } },
       include: { client: true, topic: true },
     });
-
-    console.log(operators);
 
     for (const chat of chats) {
       await this.botService.sendReceiveConversationButton(

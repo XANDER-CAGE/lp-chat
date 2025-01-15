@@ -352,7 +352,6 @@ export class BotService {
       data: {
         chatId: chat.id,
         operatorId: operator.id,
-        userId: chat.clientId,
         topicId: chat.topicId,
         chatStartedAt: new Date(),
         status: ConsultationStatus.IN_PROGRESS,
