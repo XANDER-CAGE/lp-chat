@@ -222,6 +222,8 @@ export class ChatService {
       include: { client: true, topic: true },
     });
 
+    console.log(operators);
+
     for (const chat of chats) {
       await this.botService.sendReceiveConversationButton(
         operators,
