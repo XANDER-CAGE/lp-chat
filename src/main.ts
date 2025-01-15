@@ -18,8 +18,9 @@ async function bootstrap() {
 
   // Optionally enable CORS for HTTP endpoints
   app.enableCors({
-    origin: ['https://dev.davoai.uz', 'https://davoai.uz'],
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    //origin: ['https://dev.davoai.uz', 'https://davoai.uz'],
+    origin: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });
   const document = SwaggerModule.createDocument(app, swaggerConfig, {
