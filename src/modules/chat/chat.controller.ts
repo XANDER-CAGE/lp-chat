@@ -5,7 +5,6 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CreateMessageDto, GetMessagesByChatIdDto } from './dto/message.dto';
 import { IUser } from 'src/common/interface/my-req.interface';
 import { CoreApiResponse } from 'src/common/response-class/core-api.response';
-import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { AuthGuard } from 'src/common/guard/auth.guard';
 import { findOperatorsCronId } from '../../common/var/index.var';
 import { Cron } from '@nestjs/schedule';
@@ -46,12 +45,6 @@ export class ChatController {
   @Get('all-active-operators')
   async getAllActiveOperators() {
     const data = await this.chatService.getAllActiveOperators();
-    return CoreApiResponse.success(data);
-  }
-
-  @Get('all-messages')
-  async allMessages(@Query() dto: PaginationDto, @User() user: IUser) {
-    const data = await this.chatService.getMessages(dto, user);
     return CoreApiResponse.success(data);
   }
 
