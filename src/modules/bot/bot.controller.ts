@@ -80,7 +80,7 @@ export class BotController {
   async callback(@Ctx() ctx: Context) {
     const [callback, data] = ctx.callbackQuery.data.split('$');
     if (callback == 'receive') {
-      return this.botService.receive(ctx, data);
+      return this.botService.receiveByOperator(ctx, data);
     }
     // else if (callback == 'reject') {
     //   return this.botService.reject(ctx, data);

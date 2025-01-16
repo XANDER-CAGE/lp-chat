@@ -10,6 +10,10 @@ export class CreateChatDto {
   @IsString()
   topicId?: string;
 
+  @IsOptional()
+  @IsString()
+  type: string;
+
   @ApiPropertyOptional({
     required: false,
     description: 'User ID',

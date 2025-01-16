@@ -49,6 +49,7 @@ export class ChatService {
       chat = await this.chatCreate(
         {
           consultationId: dto.consultationId,
+          type: 'init',
         },
         user,
       );
@@ -160,6 +161,7 @@ export class ChatService {
         chat = await this.chatCreate(
           {
             consultationId: dto.consultationId,
+            type: 'active',
           },
           user,
           trx,
@@ -167,7 +169,7 @@ export class ChatService {
       }
 
       // console.log(chat);
-
+      let message = [];
       await trx.consultation.update({
         where: {
           id: dto.consultationId,
@@ -187,33 +189,36 @@ export class ChatService {
           if (!file) throw new NotFoundException('File not found');
         }
 
-        await trx.message.create({
-          data: {
-            authorId: user.id,
-            chatId: chat.id,
-            id: objectId(),
-            content: mes.content,
-            fileId: mes.fileId,
-            type: mes.type,
-            transactionId: mes.transaction_id,
-            rate: mes.rate || null,
-            repliedMessageId: mes.repliedMessageId,
-            createdAt: mes.createdAt,
-          },
-          include: { chat: true },
+        message.push({
+          authorId: user.id,
+          chatId: chat.id,
+          id: objectId(),
+          content: mes.content,
+          fileId: mes.fileId,
+          type: mes.type,
+          transactionId: mes.transaction_id,
+          rate: mes.rate || null,
+          repliedMessageId: mes.repliedMessageId,
+          createdAt: mes.createdAt,
         });
-
-        await this.botService.sendReceiveConversationButton(
-          [operator],
-          chat.client,
-          chat.id,
-          chat.topic.name,
-        );
 
         // await this.botService.messageViaBot(message.id);
       }
 
-      await this.getAllActiveOperators();
+      await trx.message.createMany({
+        data: message,
+      });
+
+      console.log(operator, chat.client, chat.id, chat.topic.name);
+
+      await this.botService.sendShowButton(operator, chat.client, chat.id, chat.topic.name);
+
+      // await this.botService.send ReceiveConversationButton(
+      //   [operator],
+      //   chat.client,
+      //   chat.id,
+      //   chat.topic.name,
+      // );
 
       return {
         success: true,
@@ -413,7 +418,7 @@ export class ChatService {
     return trx.chat.create({
       data: {
         id: objectId(),
-        status: 'init',
+        status: dto.type || 'init',
         clientId: user.id,
         topicId: dto.topicId,
         consultationId: dto.consultationId,

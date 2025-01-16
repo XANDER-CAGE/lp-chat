@@ -140,6 +140,7 @@ export class BotService {
       chat = await this.chatService.chatCreate(
         {
           consultationId: consultation?.id,
+          type: 'init',
         },
         getClient,
       );
@@ -308,11 +309,109 @@ export class BotService {
     }
   }
 
+  async sendShowButton(operator: usersWithChats, client: user, chatId: string, topic: string) {
+    await this.bot.api.sendMessage(
+      operator.telegramId,
+      `From: *${client?.firstname} ${client?.lastname}*\nTopic: _${topic}_
+        `,
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: 'Receive', callback_data: `receive$${chatId}` }],
+            // [{ text: 'Reject', callback_data: `reject$${chatId}` }],
+          ],
+          one_time_keyboard: true,
+        },
+        parse_mode: 'MarkdownV2',
+      },
+    );
+
+    return {
+      success: true,
+    };
+  }
+
   async receive(ctx: Context, chatId: string) {
     const chat = await this.prisma.chat.findFirst({
       where: {
         id: chatId,
         status: { not: 'active' },
+        operatorId: null,
+        isDeleted: false,
+      },
+      include: { topic: true },
+    });
+    if (!chat) {
+      return ctx.editMessageText('Chat already started with other operator');
+    }
+
+    if (!chat?.consultationId) {
+      return ctx.editMessageText('User consultation not found');
+    }
+
+    const operator = await this.prisma.user.findFirst({
+      where: { telegramId: ctx.from.id.toString(), isDeleted: false },
+    });
+    await this.prisma.chat.update({
+      where: { id: chat.id },
+      data: { operatorId: operator.id, status: 'active' },
+    });
+    const { firstname, lastname } = await this.prisma.user.findFirst({
+      where: { id: chat.clientId, isDeleted: false },
+    });
+    const messages = await this.prisma.message.findMany({
+      where: { chatId: chat.id, isDeleted: false },
+      include: { file: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    const editedMsgText = `Chat started with *${firstname} ${lastname}*`;
+    await ctx.editMessageText(editedMsgText, { parse_mode: 'MarkdownV2' });
+
+    if (!chat.consultationId) {
+      throw new NotFoundException('Consultation not found');
+    }
+
+    await this.prisma.$transaction(async (trx) => {
+      await trx.consultation.update({
+        where: { id: chat.consultationId },
+        data: {
+          chatId: chat.id,
+          operatorId: operator.id,
+          topicId: chat.topicId,
+          chatStartedAt: new Date(),
+          status: ConsultationStatus.IN_PROGRESS,
+        },
+      });
+
+      for (const message of messages) {
+        const formattedMessage = formatMessage({
+          firstname,
+          lastname,
+          topic: chat.topic.name,
+          message: message.content,
+        });
+        if (message.file) {
+          await this.fileToBot(ctx.from.id, message.file, formattedMessage, null);
+          continue;
+        }
+
+        await ctx.reply(formattedMessage, { parse_mode: 'MarkdownV2' });
+        this.socketGateWay.sendMessageToAcceptOperator(chat?.consultationId, operator);
+      }
+
+      await trx.user.update({
+        where: { id: operator?.id },
+        data: {
+          shiftStatus: 'inactive',
+        },
+      });
+    });
+  }
+  async receiveByOperator(ctx: Context, chatId: string) {
+    const chat = await this.prisma.chat.findFirst({
+      where: {
+        id: chatId,
+        status: 'active',
         operatorId: null,
         isDeleted: false,
       },
