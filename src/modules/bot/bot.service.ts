@@ -693,7 +693,9 @@ export class BotService {
     });
 
     const text = `Dialog with *${chat?.client?.firstname} ${chat?.client?.lastname}* stopped`;
-    return await ctx.reply(text, { parse_mode: 'MarkdownV2' });
+    await ctx.reply(text, { parse_mode: 'MarkdownV2' });
+
+    await this.commandQueue(ctx);
   }
 
   async reject(ctx: Context, chatId: string) {
