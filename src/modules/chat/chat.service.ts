@@ -542,37 +542,58 @@ export class ChatService {
 
   async getAllActiveOperators() {
     const data: any[] = await this.prisma.$queryRaw`
-        WITH checkOnlyOperatorStatus AS (
-            -- Step 1: Select all active operators
-            SELECT chu.id,
-                   chu.shift_status,
-                   chu.user_id,
-                   chu.doctor_id,
-                   chu.lastname,
-                   chu.firstname,
-                   chu.phone
-            FROM chat."user" AS chu
-            WHERE chu.is_deleted IS FALSE
-              AND chu.shift_status = 'active'),
-             checkSlot AS (
-                 -- Step 2: Exclude operators already associated with consultation orders
-                 SELECT one.*
-                 FROM checkOnlyOperatorStatus AS one
-                          LEFT JOIN consultation.consultation_order AS co
-                                    ON one.id = co.operator_id
-                 WHERE co.operator_id IS NULL -- Exclude operators with active consultation orders
+
+        WITH waiting_users AS (
+            -- Step 1: Get users waiting for assignment
+            SELECT co.id AS order_id, co.user_id, co.consultation_id
+            FROM consultation.consultation_order AS co
+            WHERE co.operator_id IS NULL -- Users not yet assigned to an operator
+              AND co.status = 'waiting' -- Status indicating they are waiting
+        ),
+             available_operators AS (
+                 -- Step 2: Get available operators, ordered by expected start time
+                 SELECT op.id,
+                        op.shift_status,
+                        op.user_id,
+                        op.doctor_id,
+                        op.firstname,
+                        op.lastname,
+                        op.phone
+                 FROM chat."user" AS op
+                 WHERE op.is_deleted = FALSE
+                   and op.doctor_id is not null
+                   and telegram_id is not null
+                   AND op.shift_status = 'active' -- Only active operators
+                 ORDER BY op.last_chat_accept_date -- Sort operators by their expected start time
              ),
-             finalFreeOperator AS (
-                 -- Step 3: Ensure operators are not locked in active transactions
-                 SELECT two.*
-                 FROM checkSlot AS two
-                          LEFT JOIN consultation.transactions AS ct
-                                    ON two.id = ct.operator_id AND ct.expires_at >= NOW()
-                 WHERE ct.operator_id IS NULL -- Exclude operators locked in active transactions
-             )
--- Step 4: Return all free operators
+             assignments AS (
+                 -- Step 3: Assign waiting users to operators in round-robin
+                 SELECT wu.order_id,
+                        wu.user_id,
+                        wu.consultation_id,
+                        ao.id,
+                        ROW_NUMBER() OVER (PARTITION BY ao.id ORDER BY wu.order_id) AS assignment_order
+                 FROM waiting_users AS wu
+                          CROSS JOIN available_operators AS ao),
+             selected_assignments AS (
+                 -- Step 4: Select one operator for each waiting user
+                 SELECT a.*
+                 FROM assignments AS a
+                 WHERE a.assignment_order = 1 -- Ensure each user gets one operator
+             ),
+             free_operators AS (
+                 -- Step 5: Find operators not in selected_assignments
+                 SELECT ao.*
+                 FROM available_operators AS ao
+                 WHERE ao.id NOT IN (SELECT sa.id FROM selected_assignments AS sa))
         SELECT *
-        FROM finalFreeOperator
+        FROM free_operators as fo
+        where fo.id NOT IN
+                  -- Exclude reserved operators with transaction logic
+              (SELECT operator_id
+               FROM consultation.transactions
+               where expires_at >= now()
+                 and status = 1);
     `;
 
     this.socket.sendActiveOperatorsViaSocket(data || []);
