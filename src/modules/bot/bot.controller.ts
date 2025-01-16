@@ -52,7 +52,7 @@ export class BotController {
 
   @Command('stopdialog')
   async stopDialog(@Ctx() ctx: Context) {
-    await this.botService.stopDialog(ctx);
+    await this.botService.stopDialogAndTakeNextQueue(ctx);
   }
 
   @CallbackQuery('register')

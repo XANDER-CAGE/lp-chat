@@ -160,6 +160,72 @@ export class BotService {
     return { success: true };
   }
 
+  async takeNextClient(ctx: Context, operator: any, order: any, trx: any) {
+    const consultation = await this.prisma.consultation.findFirst({
+      where: { id: order.consultationId },
+    });
+
+    if (!consultation) {
+      return ctx.reply('Consultation data is missing or invalid.');
+    }
+
+    const getClient = await this.prisma.user.findFirst({
+      where: { userId: consultation.userId, isDeleted: false, doctorId: null },
+    });
+
+    if (!getClient) {
+      return ctx.reply('Queue user not found');
+    }
+
+    let chat: any;
+    if (consultation?.chatId) {
+      chat = await trx.chat.findFirst({
+        where: {
+          id: consultation?.chatId,
+          isDeleted: false,
+        },
+        include: { client: true, topic: true },
+      });
+    } else {
+      chat = await this.chatService.chatCreate(
+        {
+          consultationId: consultation?.id,
+          type: 'active',
+        },
+        getClient,
+        trx,
+      );
+    }
+
+    if (!chat) {
+      return ctx.reply('Chat data is missing or invalid.');
+    }
+
+    await trx.consultation.update({
+      where: { id: consultation.id },
+      data: { chatId: chat.id, topicId: chat.topicId },
+    });
+
+    await this.bot.api.sendMessage(
+      operator.telegramId,
+      `From: *${getClient?.firstname} ${getClient?.lastname}*\nTopic: _${chat.topic.name}_
+        `,
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: 'Receive', callback_data: `receive$${chat?.id}` }],
+            // [{ text: 'Reject', callback_data: `reject$${chatId}` }],
+          ],
+          one_time_keyboard: true,
+        },
+        parse_mode: 'MarkdownV2',
+      },
+    );
+    // await this.sendReceiveConversationButton([operator], getClient, chat.id, chat.topic.name);
+
+    return { success: true };
+  }
+
   async commandStop(ctx: Context) {
     const operator = await this.prisma.user.findFirst({
       where: {
@@ -352,6 +418,7 @@ export class BotService {
     const operator = await this.prisma.user.findFirst({
       where: { telegramId: ctx.from.id.toString(), isDeleted: false },
     });
+
     await this.prisma.chat.update({
       where: { id: chat.id },
       data: { operatorId: operator.id, status: 'active' },
@@ -428,10 +495,7 @@ export class BotService {
     const operator = await this.prisma.user.findFirst({
       where: { telegramId: ctx.from.id.toString(), isDeleted: false },
     });
-    await this.prisma.chat.update({
-      where: { id: chat.id },
-      data: { operatorId: operator.id, status: 'active' },
-    });
+
     const { firstname, lastname } = await this.prisma.user.findFirst({
       where: { id: chat.clientId, isDeleted: false },
     });
@@ -440,6 +504,7 @@ export class BotService {
       include: { file: true },
       orderBy: { createdAt: 'asc' },
     });
+
     const editedMsgText = `Chat started with *${firstname} ${lastname}*`;
     await ctx.editMessageText(editedMsgText, { parse_mode: 'MarkdownV2' });
 
@@ -481,6 +546,16 @@ export class BotService {
         },
       });
 
+      await trx.chat.update({
+        where: {
+          id: chat?.id,
+        },
+        data: {
+          operatorId: operator?.id,
+          status: 'active',
+        },
+      });
+
       await this.prisma.message.create({
         data: {
           authorId: operator.id,
@@ -509,6 +584,7 @@ export class BotService {
     const activeChat = await this.prisma.chat.findFirst({
       where: { status: 'active', operatorId: operator.id, isDeleted: false },
     });
+
     if (!activeChat) return ctx.reply('No active chats');
 
     if (!activeChat?.consultationId) return ctx.reply('Client consultation not found');
@@ -696,6 +772,65 @@ export class BotService {
     await ctx.reply(text, { parse_mode: 'MarkdownV2' });
 
     await this.commandQueue(ctx);
+  }
+  async stopDialogAndTakeNextQueue(ctx: Context) {
+    const operator = await this.prisma.user.findFirst({
+      where: {
+        telegramId: ctx.from.id.toString(),
+        approvedAt: { not: null },
+        shiftStatus: 'inactive',
+      },
+    });
+
+    if (!operator) return;
+    const chat = await this.prisma.chat.findFirst({
+      where: { operatorId: operator.id, status: 'active' },
+      include: { client: true },
+    });
+    if (!chat) return ctx.reply('No active chats');
+
+    this.socketGateWay.disconnectChatMembers(chat?.consultationId);
+
+    return this.prisma.$transaction(async (trx) => {
+      await trx.chat.update({
+        where: { id: chat.id },
+        data: { status: 'done', operatorId: operator?.id },
+      });
+
+      if (chat?.consultationId) {
+        const data = await trx.consultation.update({
+          where: {
+            id: chat?.consultationId,
+          },
+          data: {
+            status: ConsultationStatus.FINISHED,
+            chatId: chat?.id,
+            topicId: chat?.topicId,
+          },
+        });
+        this.socketGateWay.sendStopActionToClientViaSocket(chat?.consultationId, data);
+      }
+
+      const text = `Dialog with *${chat?.client?.firstname} ${chat?.client?.lastname}* stopped`;
+      await ctx.reply(text, { parse_mode: 'MarkdownV2' });
+
+      const order = await this.prisma.consultationOrder.findFirst({
+        where: { status: 'waiting', operatorId: null },
+        orderBy: { order: 'asc' },
+        select: { id: true, consultationId: true },
+      });
+
+      if (order?.id) {
+        await this.takeNextClient(ctx, operator, order, trx);
+      } else {
+        await trx.user.update({
+          where: { id: operator?.id },
+          data: {
+            shiftStatus: 'active',
+          },
+        });
+      }
+    });
   }
 
   async reject(ctx: Context, chatId: string) {
