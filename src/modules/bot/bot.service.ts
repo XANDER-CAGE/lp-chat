@@ -683,6 +683,15 @@ export class BotService {
       this.socketGateWay.sendStopActionToClientViaSocket(chat?.consultationId, data);
     }
 
+    await this.prisma.user.update({
+      where: {
+        id: operator?.id,
+      },
+      data: {
+        shiftStatus: 'active',
+      },
+    });
+
     const text = `Dialog with *${chat?.client?.firstname} ${chat?.client?.lastname}* stopped`;
     return await ctx.reply(text, { parse_mode: 'MarkdownV2' });
   }
