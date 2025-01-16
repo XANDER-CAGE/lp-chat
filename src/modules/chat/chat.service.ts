@@ -532,6 +532,11 @@ export class ChatService {
         },
         isDeleted: false,
       },
+      orderBy: [
+        {
+          createdAt: 'asc',
+        },
+      ],
     });
 
     return { activeChat, messages };
