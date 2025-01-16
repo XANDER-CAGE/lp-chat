@@ -509,6 +509,7 @@ export class ChatService {
             doctorId: true,
           },
         },
+        acceptDoctor: true,
         repliedMessage: {
           select: {
             id: true,

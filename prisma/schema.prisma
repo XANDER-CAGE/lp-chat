@@ -40,24 +40,27 @@ model downloadHistory {
 }
 
 model message {
-  id               String    @id @default(dbgenerated("generate_object_id()")) @db.VarChar(24)
-  content          String?   @map("content")
-  fileId           String?   @unique @map("file_id")
-  file             file?     @relation(fields: [fileId], references: [id])
-  chatId           String    @map("chat_id")
-  chat             chat      @relation(fields: [chatId], references: [id])
-  repliedMessageId String?   @map("replied_message_id")
-  tgMsgId          String?   @map("tg_msg_id")
-  authorId         String    @map("author_id")
-  author           user      @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  repliedMessage   message?  @relation("messageTomessage", fields: [repliedMessageId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  repliedMessages  message[] @relation("messageTomessage")
-  firstname        String?   @map("firstname")
-  lastname         String?   @map("lastname")
-  type             String?   @map("type")
-  transactionId    String?   @map("transaction_id")
-  acceptDoctorId   String?   @map("accept_doctor_id")
-  rate             Int?      @map("rate")
+  id               String        @id @default(dbgenerated("generate_object_id()")) @db.VarChar(24)
+  content          String?       @map("content")
+  fileId           String?       @unique @map("file_id")
+  file             file?         @relation(fields: [fileId], references: [id])
+  chatId           String        @map("chat_id")
+  chat             chat          @relation(fields: [chatId], references: [id])
+  repliedMessageId String?       @map("replied_message_id")
+  tgMsgId          String?       @map("tg_msg_id")
+  authorId         String        @map("author_id")
+  author           user          @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  repliedMessage   message?      @relation("messageTomessage", fields: [repliedMessageId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  repliedMessages  message[]     @relation("messageTomessage")
+  firstname        String?       @map("firstname")
+  lastname         String?       @map("lastname")
+  type             String?       @map("type")
+  transactionId    String?       @map("transaction_id")
+  acceptDoctorId   String?       @map("accept_doctor_id")
+  acceptDoctor     doctor?       @relation(fields: [acceptDoctorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  transaction      transactions? @relation(fields: [transactionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  rate Int? @map("rate")
 
   isDeleted Boolean   @default(false) @map("is_deleted")
   // Timestamps
@@ -286,7 +289,7 @@ model consultation {
   @@schema("consultation")
 }
 
-model Transactions {
+model transactions {
   id             String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   userId         String    @map("user_id")
   operatorId     String?   @map("operator_id")
@@ -296,6 +299,7 @@ model Transactions {
   payedAmount    Int?      @map("payed_amount")
   consultationId String?   @map("consultation_id") @db.Uuid
   expiresAt      DateTime? @default(dbgenerated("now() + interval '2 minutes'")) @map("expires_at")
+  message        message[]
 
   @@map("transactions")
   @@schema("consultation")
@@ -321,4 +325,17 @@ model ConsultationOperatorState {
 
   @@map("consultation_operator_state")
   @@schema("consultation")
+}
+
+model doctor {
+  id        String    @id @default(dbgenerated("generate_object_id()")) @db.VarChar(24)
+  orgId     String?   @map("org_id")
+  isDeleted Boolean   @map("is_deleted")
+  filePath  String?   @map("file_path")
+  firstName String?   @map("first_name")
+  lastName  String?   @map("last_name")
+  message   message[]
+
+  @@map("doctors")
+  @@schema("doctor")
 }
