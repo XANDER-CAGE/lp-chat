@@ -209,7 +209,7 @@ export class ChatService {
         data: message,
       });
 
-      console.log(operator, chat.client, chat.id, chat.topic.name);
+      await this.getAllActiveOperators();
 
       await this.botService.sendShowButton(operator, chat.client, chat.id, chat.topic.name);
 
