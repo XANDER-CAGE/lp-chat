@@ -654,9 +654,10 @@ export class BotService {
       where: {
         telegramId: ctx.from.id.toString(),
         approvedAt: { not: null },
-        shiftStatus: 'active',
+        shiftStatus: 'inactive',
       },
     });
+
     if (!operator) return;
     const chat = await this.prisma.chat.findFirst({
       where: { operatorId: operator.id, status: 'active' },
@@ -671,7 +672,7 @@ export class BotService {
     });
 
     if (chat?.consultationId) {
-      await this.prisma.consultation.update({
+      const data = await this.prisma.consultation.update({
         where: {
           id: chat?.consultationId,
         },
@@ -679,6 +680,7 @@ export class BotService {
           status: ConsultationStatus.FINISHED,
         },
       });
+      this.socketGateWay.sendStopActionToClientViaSocket(chat?.consultationId, data);
     }
 
     const text = `Dialog with *${chat?.client?.firstname} ${chat?.client?.lastname}* stopped`;
