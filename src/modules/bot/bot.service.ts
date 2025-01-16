@@ -330,7 +330,9 @@ export class BotService {
     client: user,
     chatId: string,
     topic: string,
+    trx = null,
   ) {
+    trx = trx ? trx : this.prisma;
     for (const operator of operators) {
       const date = new Date();
       date.setMinutes(date.getMinutes() - env.REJECTED_MESSAGE_TIMEOUT_IN_MINUTES);
@@ -352,10 +354,7 @@ export class BotService {
         `,
         {
           reply_markup: {
-            inline_keyboard: [
-              [{ text: 'Receive', callback_data: `receive$${chatId}` }],
-              // [{ text: 'Reject', callback_data: `reject$${chatId}` }],
-            ],
+            inline_keyboard: [[{ text: 'Connect to client', callback_data: `receive$${chatId}` }]],
             one_time_keyboard: true,
           },
           parse_mode: 'MarkdownV2',
@@ -363,11 +362,11 @@ export class BotService {
       );
 
       messageToDelete
-        ? await this.prisma.messageToDelete.update({
+        ? await trx.messageToDelete.update({
             where: { id: messageToDelete.id },
             data: { tgMessageId: data.message_id.toString() },
           })
-        : await this.prisma.messageToDelete.create({
+        : await trx.messageToDelete.create({
             data: {
               tgMessageId: data.message_id.toString(),
               operatorId: operator.id,

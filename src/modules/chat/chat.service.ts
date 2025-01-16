@@ -9,7 +9,7 @@ import { CreateRatingDto } from './dto/create-rating.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { objectId } from 'src/common/util/formate-message.util';
 import { IUser } from 'src/common/interface/my-req.interface';
-import { MessageTypeEnum } from './enum';
+import { ConsultationStatus, MessageTypeEnum } from './enum';
 import { SocketGateway } from './socket.gateway';
 
 @Injectable()
@@ -122,7 +122,14 @@ export class ChatService {
 
   async startChatWithOperator(dto: CreateMessageDto, user: IUser) {
     const consultation = await this.prisma.consultation.findFirst({
-      where: { id: dto.consultationId },
+      where: {
+        id: dto.consultationId,
+        status: ConsultationStatus.NEW,
+        userId: user.userId,
+        operatorId: null,
+        chatId: null,
+        topicId: null,
+      },
     });
 
     if (!consultation?.id) {
@@ -145,38 +152,37 @@ export class ChatService {
       throw new NotFoundException('Operator not found');
     }
 
-    let chat: any = await this.prisma.chat.findFirst({
-      where: {
-        clientId: user.id,
-        status: { in: ['active', 'init'] },
-        consultationId: dto.consultationId,
-      },
-      include: { messages: true, client: true },
-    });
-
     return this.prisma.$transaction(async (trx) => {
-      if (!chat) {
-        chat = await this.chatCreate(
-          {
-            consultationId: dto.consultationId,
-            type: 'active',
+      let topic = await this.prisma.topic.findFirst({
+        where: { name: 'other', isDeleted: false },
+      });
+
+      if (!topic) {
+        topic = await trx.topic.create({
+          data: {
+            id: objectId(),
+            name: 'other',
+            description: 'other',
           },
-          user,
-          trx,
-        );
+        });
       }
 
-      // console.log(chat);
-      let message = [];
-      await trx.consultation.update({
-        where: {
-          id: dto.consultationId,
-        },
+      if (!topic) {
+        throw new NotFoundException('Topic not found');
+      }
+      const chatId = objectId();
+      const chat = await trx.chat.create({
         data: {
-          chatId: chat.id,
-          topicId: chat.topicId,
+          id: chatId,
+          status: 'active',
+          clientId: user.id,
+          topicId: topic.id,
+          consultationId: dto.consultationId,
         },
+        include: { messages: true, topic: true, client: true },
       });
+
+      let message = [];
 
       for (const mes of dto.messages) {
         let file: any;
@@ -188,9 +194,9 @@ export class ChatService {
         }
 
         message.push({
-          authorId: user.id,
-          chatId: chat.id,
           id: objectId(),
+          authorId: user.id,
+          chatId: chatId,
           content: mes.content,
           fileId: mes.fileId,
           type: mes.type,
@@ -199,24 +205,33 @@ export class ChatService {
           repliedMessageId: mes.repliedMessageId,
           createdAt: mes.createdAt,
         });
-
-        // await this.botService.messageViaBot(message.id);
       }
 
       await trx.message.createMany({
         data: message,
       });
 
+      await trx.consultation.update({
+        where: {
+          id: dto.consultationId,
+        },
+        data: {
+          chatId: chat.id,
+          topicId: chat.topicId,
+        },
+      });
+
       await this.getAllActiveOperators();
 
-      await this.botService.sendShowButton(operator, chat.client, chat.id, chat.topic.name);
+      // await this.botService.sendShowButton(operator, chat.client, chat.id, chat.topic.name);
 
-      // await this.botService.send ReceiveConversationButton(
-      //   [operator],
-      //   chat.client,
-      //   chat.id,
-      //   chat.topic.name,
-      // );
+      await this.botService.sendReceiveConversationButton(
+        [operator],
+        chat.client,
+        chat.id,
+        chat.topic.name,
+        trx,
+      );
 
       return {
         success: true,
