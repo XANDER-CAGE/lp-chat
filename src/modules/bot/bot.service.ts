@@ -162,7 +162,14 @@ export class BotService {
 
   async takeNextClient(ctx: Context, operator: any, order: any, trx: any) {
     const consultation = await this.prisma.consultation.findFirst({
-      where: { id: order.consultationId },
+      where: {
+        id: order.consultationId,
+        operatorId: null,
+        chatId: null,
+        topicId: null,
+        status: ConsultationStatus.NEW,
+        userId: { not: null },
+      },
     });
 
     if (!consultation) {
@@ -177,25 +184,31 @@ export class BotService {
       return ctx.reply('Queue user not found');
     }
 
-    let chat: any;
-    if (consultation?.chatId) {
-      chat = await trx.chat.findFirst({
-        where: {
-          id: consultation?.chatId,
-          isDeleted: false,
+    let topic = await this.prisma.topic.findFirst({
+      where: { name: 'other', isDeleted: false },
+    });
+
+    if (!topic) {
+      topic = await trx.topic.create({
+        data: {
+          id: objectId(),
+          name: 'other',
+          description: 'other',
         },
-        include: { client: true, topic: true },
       });
-    } else {
-      chat = await this.chatService.chatCreate(
-        {
-          consultationId: consultation?.id,
-          type: 'active',
-        },
-        getClient,
-        trx,
-      );
     }
+
+    const chat = await trx.chat.create({
+      data: {
+        id: objectId(),
+        status: 'active',
+        clientId: getClient.id,
+        topicId: topic.id,
+        consultationId: consultation.id,
+        operatorId: operator.id,
+      },
+      include: { messages: true, topic: true, client: true },
+    });
 
     if (!chat) {
       return ctx.reply('Chat data is missing or invalid.');
@@ -203,25 +216,16 @@ export class BotService {
 
     await trx.consultation.update({
       where: { id: consultation.id },
-      data: { chatId: chat.id, topicId: chat.topicId },
+      data: { chatId: chat.id, topicId: chat.topicId, status: ConsultationStatus.IN_PROGRESS },
     });
 
-    await this.bot.api.sendMessage(
-      operator.telegramId,
-      `From: *${getClient?.firstname} ${getClient?.lastname}*\nTopic: _${chat.topic.name}_
-        `,
-      {
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: 'Receive', callback_data: `receive$${chat?.id}` }],
-            // [{ text: 'Reject', callback_data: `reject$${chatId}` }],
-          ],
-          one_time_keyboard: true,
-        },
-        parse_mode: 'MarkdownV2',
-      },
+    await this.sendReceiveConversationButton(
+      [operator],
+      getClient,
+      chat.id,
+      chat?.topic?.name,
+      trx,
     );
-    // await this.sendReceiveConversationButton([operator], getClient, chat.id, chat.topic.name);
 
     return { success: true };
   }
@@ -475,16 +479,32 @@ export class BotService {
       });
     });
   }
-  async receiveByOperator(ctx: Context, chatId: string) {
+  async showMessageButton(ctx: Context, chatId: string) {
+    const operator = await this.prisma.user.findFirst({
+      where: {
+        telegramId: ctx.from.id.toString(),
+        approvedAt: { not: null },
+        blockedAt: null,
+        isDeleted: false,
+        shiftStatus: 'inactive',
+      },
+    });
+
+    if (!operator) {
+      return ctx.reply('You have no right');
+    }
+
     const chat = await this.prisma.chat.findFirst({
       where: {
         id: chatId,
         status: 'active',
-        operatorId: null,
         isDeleted: false,
+        operatorId: operator.id,
+        consultationId: { not: null },
       },
       include: { topic: true },
     });
+
     if (!chat) {
       return ctx.editMessageText('Chat already started with other operator');
     }
@@ -493,13 +513,10 @@ export class BotService {
       return ctx.editMessageText('User consultation not found');
     }
 
-    const operator = await this.prisma.user.findFirst({
-      where: { telegramId: ctx.from.id.toString(), isDeleted: false },
-    });
-
     const { firstname, lastname } = await this.prisma.user.findFirst({
       where: { id: chat.clientId, isDeleted: false },
     });
+
     const messages = await this.prisma.message.findMany({
       where: { chatId: chat.id, isDeleted: false },
       include: { file: true },
@@ -509,11 +526,7 @@ export class BotService {
     const editedMsgText = `Chat started with *${firstname} ${lastname}*`;
     await ctx.editMessageText(editedMsgText, { parse_mode: 'MarkdownV2' });
 
-    if (!chat.consultationId) {
-      throw new NotFoundException('Consultation not found');
-    }
-
-    await this.prisma.$transaction(async (trx) => {
+    return this.prisma.$transaction(async (trx) => {
       await trx.consultation.update({
         where: { id: chat.consultationId },
         data: {
@@ -522,6 +535,17 @@ export class BotService {
           topicId: chat.topicId,
           chatStartedAt: new Date(),
           status: ConsultationStatus.IN_PROGRESS,
+        },
+      });
+
+      await trx.message.create({
+        data: {
+          authorId: operator.id,
+          chatId: chat.id,
+          id: objectId(),
+          content: 'Accept Operator',
+          type: MessageTypeEnum.AcceptOperator,
+          acceptDoctorId: operator?.doctorId,
         },
       });
 
@@ -540,35 +564,7 @@ export class BotService {
         await ctx.reply(formattedMessage, { parse_mode: 'MarkdownV2' });
       }
 
-      await trx.user.update({
-        where: { id: operator?.id },
-        data: {
-          shiftStatus: 'inactive',
-        },
-      });
-
-      await trx.chat.update({
-        where: {
-          id: chat?.id,
-        },
-        data: {
-          operatorId: operator?.id,
-          status: 'active',
-        },
-      });
-
-      await this.prisma.message.create({
-        data: {
-          authorId: operator.id,
-          chatId: chat.id,
-          id: objectId(),
-          content: 'Accept Operator',
-          type: MessageTypeEnum.AcceptOperator,
-          acceptDoctorId: operator?.doctorId,
-        },
-      });
-
-      this.socketGateWay.sendMessageToAcceptOperator(chat?.consultationId, operator);
+      return this.socketGateWay.sendMessageToAcceptOperator(chat?.consultationId, operator);
     });
   }
 
@@ -792,9 +788,9 @@ export class BotService {
 
     const text = `Dialog with *${chat?.client?.firstname} ${chat?.client?.lastname}* stopped`;
     await ctx.reply(text, { parse_mode: 'MarkdownV2' });
-
     await this.commandQueue(ctx);
   }
+
   async stopDialogAndTakeNextQueue(ctx: Context) {
     const operator = await this.prisma.user.findFirst({
       where: {
@@ -805,35 +801,44 @@ export class BotService {
     });
 
     if (!operator) return;
+
     const chat = await this.prisma.chat.findFirst({
-      where: { operatorId: operator.id, status: 'active' },
+      where: {
+        operatorId: operator.id,
+        status: 'active',
+        consultationId: { not: null },
+        clientId: { not: null },
+      },
       include: { client: true },
     });
-    if (!chat) return ctx.reply('No active chats');
+
+    if (!chat) {
+      return ctx.reply('No active chats');
+    }
 
     this.socketGateWay.disconnectChatMembers(chat?.consultationId);
 
     return this.prisma.$transaction(async (trx) => {
       await trx.chat.update({
         where: { id: chat.id },
-        data: { status: 'done', operatorId: operator?.id },
+        data: { status: 'done' },
       });
 
-      if (chat?.consultationId) {
-        const data = await trx.consultation.update({
-          where: {
-            id: chat?.consultationId,
-          },
-          data: {
-            status: ConsultationStatus.FINISHED,
-            chatId: chat?.id,
-            topicId: chat?.topicId,
-          },
-        });
-        this.socketGateWay.sendStopActionToClientViaSocket(chat?.consultationId, data);
-      }
+      const data = await trx.consultation.update({
+        where: {
+          id: chat?.consultationId,
+        },
+        data: {
+          status: ConsultationStatus.FINISHED,
+          chatId: chat?.id,
+          topicId: chat?.topicId,
+        },
+      });
+
+      this.socketGateWay.sendStopActionToClientViaSocket(chat?.consultationId, data);
 
       const text = `Dialog with *${chat?.client?.firstname} ${chat?.client?.lastname}* stopped`;
+
       await ctx.reply(text, { parse_mode: 'MarkdownV2' });
 
       const order = await this.prisma.consultationOrder.findFirst({
