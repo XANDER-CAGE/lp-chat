@@ -581,25 +581,51 @@ export class BotService {
         isDeleted: false,
       },
     });
+
     if (!operator) return ctx.reply('You have no right');
+
     const activeChat = await this.prisma.chat.findFirst({
-      where: { status: 'active', operatorId: operator.id, isDeleted: false },
+      where: {
+        status: 'active',
+        operatorId: operator.id,
+        isDeleted: false,
+        clientId: { not: null },
+      },
     });
 
-    if (!activeChat) return ctx.reply('No active chats');
+    if (!activeChat) {
+      return ctx.reply('No active chats');
+    }
 
-    if (!activeChat?.consultationId) return ctx.reply('Client consultation not found');
+    if (!activeChat?.consultationId) {
+      return ctx.reply('Client consultation not found');
+    }
+
+    const consultation = await this.prisma.consultation.findFirst({
+      where: {
+        id: activeChat.consultationId,
+        chatId: activeChat?.id,
+        status: { in: [ConsultationStatus.NEW, ConsultationStatus.IN_PROGRESS] },
+      },
+    });
+
+    if (!consultation) {
+      throw new NotFoundException('Active or new consultation not found');
+    }
 
     const repliedMessageTgId = ctx.update?.message?.reply_to_message?.message_id;
     const tgMessageId = ctx.update?.message?.message_id;
     let repliedMessageId: string;
+
     if (repliedMessageTgId) {
       const repliedMessage = await this.prisma.message.findFirst({
         where: { tgMsgId: repliedMessageTgId.toString(), isDeleted: false },
       });
       repliedMessageId = repliedMessage?.id || null;
     }
+
     const content = caption || ctx.message?.text || null;
+
     const message = await this.prisma.message.create({
       data: {
         authorId: operator.id,
@@ -632,11 +658,6 @@ export class BotService {
         },
         file: true,
       },
-      // include: {
-      //   author: true,
-      //   repliedMessage: { include: { file: true } },
-      //   file: true,
-      // },
     });
 
     this.socketGateWay.sendMessageViaSocket(activeChat?.consultationId.toString(), message);
