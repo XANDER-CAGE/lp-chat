@@ -4,11 +4,9 @@ import { CreateChatDto } from './dto/chat.dto';
 import { BotService } from '../bot/bot.service';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { findOperatorsCronId } from 'src/common/var/index.var';
-import { CreateMessageDto, GetMessagesByChatIdDto, UpdateMessageDto } from './dto/message.dto';
+import { CreateMessageDto, GetMessagesByChatIdDto } from './dto/message.dto';
 import { CreateRatingDto } from './dto/create-rating.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
-import { ChatListDto } from './dto/chat-list.dto';
-import { RejectedChatListDto } from './dto/rejectted-chat-list.dto';
 import { objectId } from 'src/common/util/formate-message.util';
 import { IUser } from 'src/common/interface/my-req.interface';
 import { MessageTypeEnum } from './enum';
@@ -225,75 +223,6 @@ export class ChatService {
         chatId: chat.id,
         consultationId: chat.consultationId,
       };
-    });
-  }
-
-  async updateMessage({ id, ...dto }: UpdateMessageDto, user: IUser) {
-    let file: any;
-    const existMessage = await this.prisma.message.findFirst({
-      where: { id, isDeleted: false },
-    });
-
-    if (!existMessage) {
-      throw new NotFoundException('Message does not exist');
-    }
-
-    if (dto.fileId) {
-      file = await this.prisma.file.findFirst({
-        where: { id: dto.fileId },
-      });
-      if (!file) throw new NotFoundException('File not found');
-    }
-    const type = this.checkingMessageType(
-      {
-        fileId: dto.fileId,
-        content: dto.content,
-      },
-      file,
-    );
-
-    const updateObj: any = { ...dto, type, updatedAt: new Date(), updatedBy: user.id };
-
-    return this.prisma.message.update({ where: { id }, data: updateObj });
-  }
-
-  async chatHistory(id: string) {
-    return this.prisma.chat.findMany({
-      where: { id },
-      include: {
-        messages: {
-          orderBy: { createdAt: 'asc' },
-          include: { author: true, file: true, repliedMessage: true },
-        },
-      },
-    });
-  }
-
-  async chatList(dto: ChatListDto) {
-    const operatorQuery = dto.operatorPhoneNumber
-      ? { operator: { phone: { contains: dto.operatorPhoneNumber || '' } } }
-      : {};
-    const clientquery = dto.userEmail ? { client: { email: { contains: dto.userEmail } } } : {};
-    const where = { ...operatorQuery, ...clientquery };
-    return this.prisma.chat.findMany({
-      where,
-      include: { operator: true, client: true },
-      orderBy: { createdAt: 'desc' },
-      take: dto.limit,
-      skip: (dto.page - 1) * dto.limit,
-    });
-  }
-
-  async rejectedChatList(dto: RejectedChatListDto) {
-    return this.prisma.rejectedChat.findMany({
-      where: {
-        operator: { phone: { contains: dto.operatorPhoneNumber || '' } },
-        // chatId: dto.chatId,
-      },
-      include: { operator: true, chat: true },
-      orderBy: { createdAt: 'desc' },
-      take: dto.limit,
-      skip: (dto.page - 1) * dto.limit,
     });
   }
 

@@ -264,9 +264,11 @@ export class BotService {
     const operator = await this.prisma.user.findFirst({
       where: { telegramId: ctx.from.id.toString(), isDeleted: false },
     });
+
     if (operator) {
       return ctx.reply('Application already saved. Please wait for administrator to approve');
     }
+
     const contactButton = Keyboard.requestContact('Share Contact');
     return await ctx.reply('Send your contact', {
       reply_markup: {
@@ -279,7 +281,7 @@ export class BotService {
 
   async contact(ctx: Context, contact: any) {
     contact.phone_number = contact.phone_number.replace('+', '');
-    const exitDoc: any = await this.prisma.$queryRaw`
+    const [exitDoc]: any = await this.prisma.$queryRaw`
         select *
         from doctor.doctors as d
         where d.is_deleted is false
@@ -289,7 +291,7 @@ export class BotService {
         limit 1;
       `;
 
-    if (!exitDoc?.length) {
+    if (!exitDoc) {
       return ctx.reply('Your number is not registered as an operator on the davoai.uz platform.', {
         reply_markup: { remove_keyboard: true },
       });
@@ -308,8 +310,8 @@ export class BotService {
     }
     await this.prisma.user.create({
       data: {
-        firstname: ctx.from.first_name,
-        lastname: ctx.from.last_name,
+        firstname: exitDoc.first_name,
+        lastname: exitDoc.last_name,
         phone: contact.phone_number,
         telegramId: ctx.from.id.toString(),
         username: ctx.from.username,
