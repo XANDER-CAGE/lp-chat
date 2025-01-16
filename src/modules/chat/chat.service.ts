@@ -209,8 +209,6 @@ export class ChatService {
         data: message,
       });
 
-      await this.getAllActiveOperators();
-
       await this.botService.sendShowButton(operator, chat.client, chat.id, chat.topic.name);
 
       // await this.botService.send ReceiveConversationButton(
@@ -544,18 +542,37 @@ export class ChatService {
 
   async getAllActiveOperators() {
     const data: any[] = await this.prisma.$queryRaw`
-        select chu.id,
-               chu.shift_status,
-               chu.user_id,
-               chu.doctor_id,
-               chu.firstname,
-               chu.phone,
-               to_json(ct.*) as transaction_info
-        from chat."user" as chu
-                 left join consultation.transactions as ct
-                           on ct.operator_id = chu.id and ct.status = 0 and ct.expires_at <= now()
-        where chu.is_deleted is false
-          and chu.shift_status = 'active'
+        WITH checkOnlyOperatorStatus AS (
+            -- Step 1: Select all active operators
+            SELECT chu.id,
+                   chu.shift_status,
+                   chu.user_id,
+                   chu.doctor_id,
+                   chu.lastname,
+                   chu.firstname,
+                   chu.phone
+            FROM chat."user" AS chu
+            WHERE chu.is_deleted IS FALSE
+              AND chu.shift_status = 'active'),
+             checkSlot AS (
+                 -- Step 2: Exclude operators already associated with consultation orders
+                 SELECT one.*
+                 FROM checkOnlyOperatorStatus AS one
+                          LEFT JOIN consultation.consultation_order AS co
+                                    ON one.id = co.operator_id
+                 WHERE co.operator_id IS NULL -- Exclude operators with active consultation orders
+             ),
+             finalFreeOperator AS (
+                 -- Step 3: Ensure operators are not locked in active transactions
+                 SELECT two.*
+                 FROM checkSlot AS two
+                          LEFT JOIN consultation.transactions AS ct
+                                    ON two.id = ct.operator_id AND ct.expires_at >= NOW()
+                 WHERE ct.operator_id IS NULL -- Exclude operators locked in active transactions
+             )
+-- Step 4: Return all free operators
+        SELECT *
+        FROM finalFreeOperator
     `;
 
     this.socket.sendActiveOperatorsViaSocket(data || []);
