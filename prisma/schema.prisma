@@ -56,6 +56,7 @@ model message {
   lastname         String?   @map("lastname")
   type             String?   @map("type")
   transactionId    String?   @map("transaction_id")
+  acceptDoctorId   String?   @map("accept_doctor_id")
   rate             Int?      @map("rate")
 
   isDeleted Boolean   @default(false) @map("is_deleted")

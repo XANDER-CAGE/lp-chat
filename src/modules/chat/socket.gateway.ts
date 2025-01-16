@@ -27,9 +27,7 @@ import { ConsultationStatus } from './enum';
 @Injectable()
 @WebSocketGateway({
   cors: {
-    origin: ['https://dev.davoai.uz', 'https://davoai.uz'],
-    methods: ['GET', 'POST'],
-    credentials: true,
+    origin: '*',
   },
 })
 export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {

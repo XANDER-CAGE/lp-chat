@@ -9,11 +9,11 @@ import { getFileUrl } from 'src/common/util/get-tg-file-url.util';
 import axios from 'axios';
 import { BufferedFile } from 'src/common/interface/buffered-file.interface';
 import { pathToStatic } from 'src/common/var/index.var';
-import { formatMessage } from 'src/common/util/formate-message.util';
+import { formatMessage, objectId } from 'src/common/util/formate-message.util';
 import { usersWithChats } from 'src/common/type/usersWithChats.type';
 import { env } from 'src/common/config/env.config';
 import { SocketGateway } from '../chat/socket.gateway';
-import { ConsultationStatus } from '../chat/enum';
+import { ConsultationStatus, MessageTypeEnum } from '../chat/enum';
 import { ChatService } from '../chat/chat.service';
 
 @Injectable()
@@ -472,7 +472,6 @@ export class BotService {
         }
 
         await ctx.reply(formattedMessage, { parse_mode: 'MarkdownV2' });
-        this.socketGateWay.sendMessageToAcceptOperator(chat?.consultationId, operator);
       }
 
       await trx.user.update({
@@ -481,6 +480,19 @@ export class BotService {
           shiftStatus: 'inactive',
         },
       });
+
+      await this.prisma.message.create({
+        data: {
+          authorId: operator.id,
+          chatId: chat.id,
+          id: objectId(),
+          content: 'Accept Operator',
+          type: MessageTypeEnum.AcceptOperator,
+          acceptDoctorId: operator?.doctorId,
+        },
+      });
+
+      this.socketGateWay.sendMessageToAcceptOperator(chat?.consultationId, operator);
     });
   }
 
@@ -657,6 +669,18 @@ export class BotService {
       where: { id: chat.id },
       data: { status: 'done' },
     });
+
+    if (chat?.consultationId) {
+      await this.prisma.consultation.update({
+        where: {
+          id: chat?.consultationId,
+        },
+        data: {
+          status: ConsultationStatus.FINISHED,
+        },
+      });
+    }
+
     const text = `Dialog with *${chat?.client?.firstname} ${chat?.client?.lastname}* stopped`;
     return await ctx.reply(text, { parse_mode: 'MarkdownV2' });
   }

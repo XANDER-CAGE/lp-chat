@@ -9,7 +9,6 @@ import {
   Length,
   ValidateIf,
 } from 'class-validator';
-import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { Type } from 'class-transformer';
 import { MessageTypeEnum } from '../enum';
 
@@ -69,7 +68,7 @@ export class CreateMessageDto {
   messages: MessageDto[];
 }
 
-export class GetMessagesByChatIdDto extends PaginationDto {
+export class GetMessagesByChatIdDto {
   @ApiProperty({ default: 'd3761737-05f1-4c53-9576-a69613b8d49d' })
   @IsString()
   @Length(36)

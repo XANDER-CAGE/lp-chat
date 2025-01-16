@@ -457,8 +457,6 @@ export class ChatService {
   }
 
   async getMessagesByChatId(dto: GetMessagesByChatIdDto, { id: userId }: IUser) {
-    const skip = ((dto.page || 1) - 1) * (dto.limit || 50);
-
     const existConsultation = await this.prisma.consultation.findFirst({
       where: {
         id: dto?.consultationId,
@@ -533,9 +531,6 @@ export class ChatService {
         },
         isDeleted: false,
       },
-
-      skip,
-      take: dto.limit || 50,
     });
 
     return { activeChat, messages };
