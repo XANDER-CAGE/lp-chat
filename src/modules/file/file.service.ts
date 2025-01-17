@@ -32,6 +32,7 @@ export class FileService {
     const fileName = `${fileId}${extname(orginalName)}`;
     const bucketName = mimeType.includes('image') ? 'images' : getBucketName();
     const path = mimeType.includes('image') ? `/images/${fileName}` : null;
+
     return this.prisma.$transaction(async (trx) => {
       const savedFile = await trx.file.create({
         data: {

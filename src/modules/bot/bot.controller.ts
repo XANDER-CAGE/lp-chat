@@ -71,6 +71,12 @@ export class BotController {
     await this.botService.handleMessage(ctx, fileId, caption);
   }
 
+  @On('message:photo')
+  async messagePhono(@Ctx() ctx: Context) {
+    const { fileId, caption } = await this.botService.fileToAPI(ctx);
+    await this.botService.handleMessage(ctx, fileId, caption);
+  }
+
   @On('message')
   async messageFile(@Ctx() ctx: Context) {
     await this.botService.handleMessage(ctx);

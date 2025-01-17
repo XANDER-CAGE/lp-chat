@@ -685,14 +685,18 @@ export class BotService {
     const caption = ctx.update.message.caption;
     const url = getFileUrl(file.file_path);
     const res = await axios.get(url, { responseType: 'arraybuffer' });
+
     const uploadingData: BufferedFile = {
       buffer: res.data,
       fieldName: file.file_id,
-      mimetype: 'telegram/file',
+      mimetype: file.file_path.includes('photo')
+        ? `image/${extname(file?.file_path).replace('.', '')}`
+        : 'telegram/file',
       encoding: null,
       originalname: file.file_path.split('/')[1],
       size: file.file_size,
     };
+
     const uploadedFile = await this.fileService.upload(uploadingData, {
       id: operator.id,
       userId: operator.userId,
