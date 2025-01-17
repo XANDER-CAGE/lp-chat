@@ -219,6 +219,15 @@ export class BotService {
       data: { chatId: chat.id, topicId: chat.topicId, status: ConsultationStatus.IN_PROGRESS },
     });
 
+    await trx.prisma.consultationOrder.update({
+      where: {
+        id: order.id,
+      },
+      data: {
+        operatorId: operator.id,
+      },
+    });
+
     await this.sendReceiveConversationButton(
       [operator],
       getClient,
