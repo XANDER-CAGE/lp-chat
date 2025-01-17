@@ -367,7 +367,7 @@ export class BotService {
         `,
         {
           reply_markup: {
-            inline_keyboard: [[{ text: 'Connect to client', callback_data: `receive$${chatId}` }]],
+            inline_keyboard: [[{ text: 'Receive', callback_data: `receive$${chatId}` }]],
             one_time_keyboard: true,
           },
           parse_mode: 'MarkdownV2',
