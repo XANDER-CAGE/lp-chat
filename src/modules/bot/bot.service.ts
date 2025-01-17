@@ -581,7 +581,9 @@ export class BotService {
     });
   }
 
-  async handleMessage(ctx: Context, fileId?: string, caption?: string) {
+  async handleMessage(ctx: Context, file?: { fileId: string; mimetype: string }, caption?: string) {
+    let messageType = null;
+
     const operator = await this.prisma.user.findFirst({
       where: {
         telegramId: ctx.from.id.toString(),
@@ -634,14 +636,23 @@ export class BotService {
 
     const content = caption || ctx.message?.text || null;
 
+    if (content && !file?.fileId) {
+      messageType = MessageTypeEnum.Text;
+    } else if (file?.fileId && file?.mimetype && file?.mimetype?.includes('image')) {
+      messageType = MessageTypeEnum.Photo;
+    } else if (file?.fileId && file?.mimetype && file?.mimetype?.includes('telegram')) {
+      messageType = MessageTypeEnum.Document;
+    }
+
     const message = await this.prisma.message.create({
       data: {
         authorId: operator.id,
         chatId: activeChat.id,
         content,
-        fileId,
+        fileId: file?.fileId,
         repliedMessageId,
         tgMsgId: tgMessageId.toString(),
+        type: messageType,
       },
       select: {
         id: true,
@@ -671,7 +682,7 @@ export class BotService {
     this.socketGateWay.sendMessageViaSocket(activeChat?.consultationId.toString(), message);
   }
 
-  async fileToAPI(ctx: Context): Promise<{ fileId: string; caption: string }> {
+  async fileToAPI(ctx: Context): Promise<{ fileId: string; caption: string; mimetype: string }> {
     const operator = await this.prisma.user.findFirst({
       where: {
         telegramId: ctx.from.id.toString(),
@@ -686,12 +697,14 @@ export class BotService {
     const url = getFileUrl(file.file_path);
     const res = await axios.get(url, { responseType: 'arraybuffer' });
 
+    const mimetype = file.file_path.includes('photo')
+      ? `image/${extname(file?.file_path).replace('.', '')}`
+      : 'telegram/file';
+
     const uploadingData: BufferedFile = {
       buffer: res.data,
       fieldName: file.file_id,
-      mimetype: file.file_path.includes('photo')
-        ? `image/${extname(file?.file_path).replace('.', '')}`
-        : 'telegram/file',
+      mimetype,
       encoding: null,
       originalname: file.file_path.split('/')[1],
       size: file.file_size,
@@ -702,7 +715,7 @@ export class BotService {
       userId: operator.userId,
       doctorId: operator.doctorId,
     });
-    return { fileId: uploadedFile.id, caption };
+    return { fileId: uploadedFile.id, caption, mimetype };
   }
 
   async fileToBot(tgUserId: number, file: file, content: string, replyParams: any) {
