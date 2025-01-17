@@ -11,7 +11,6 @@ import { BufferedFile } from 'src/common/interface/buffered-file.interface';
 import { pathToStatic } from 'src/common/var/index.var';
 import { formatMessage, objectId } from 'src/common/util/formate-message.util';
 import { usersWithChats } from 'src/common/type/usersWithChats.type';
-import { env } from 'src/common/config/env.config';
 import { SocketGateway } from '../chat/socket.gateway';
 import { ConsultationStatus, MessageTypeEnum } from '../chat/enum';
 import { ChatService } from '../chat/chat.service';
@@ -168,11 +167,13 @@ export class BotService {
         chatId: null,
         topicId: null,
         status: ConsultationStatus.NEW,
-        userId: { not: null },
+        // userId: { not: null },
       },
     });
 
-    if (!consultation) {
+    console.log(order);
+
+    if (!consultation?.userId) {
       return ctx.reply('Consultation data is missing or invalid.');
     }
 
@@ -219,7 +220,7 @@ export class BotService {
       data: { chatId: chat.id, topicId: chat.topicId, status: ConsultationStatus.IN_PROGRESS },
     });
 
-    await trx.prisma.consultationOrder.update({
+    await trx.consultationOrder.update({
       where: {
         id: order.id,
       },
@@ -346,47 +347,52 @@ export class BotService {
     trx = null,
   ) {
     trx = trx ? trx : this.prisma;
-    for (const operator of operators) {
-      const date = new Date();
-      date.setMinutes(date.getMinutes() - env.REJECTED_MESSAGE_TIMEOUT_IN_MINUTES);
-      const rejected = operator.rejectedChats.some((rejectedChat) => {
-        return rejectedChat.chatId == chatId && date < rejectedChat.createdAt;
-      });
-      if (rejected) continue;
-      const messageToDelete = await this.prisma.messageToDelete.findFirst({
-        where: { chatId: chatId, operatorId: operator.id, isDeleted: false },
-      });
-      if (messageToDelete) {
-        await this.bot.api
-          .deleteMessage(operator.telegramId, +messageToDelete.tgMessageId)
-          .catch((err) => console.log(err.message));
-      }
-      const data = await this.bot.api.sendMessage(
-        operator.telegramId,
-        `From: *${client?.firstname} ${client?.lastname}*\nTopic: _${topic}_
-        `,
-        {
-          reply_markup: {
-            inline_keyboard: [[{ text: 'Receive', callback_data: `receive$${chatId}` }]],
-            one_time_keyboard: true,
-          },
-          parse_mode: 'MarkdownV2',
-        },
-      );
+    // for (const operator of operators) {
+    //   const date = new Date();
+    //   date.setMinutes(date.getMinutes() - env.REJECTED_MESSAGE_TIMEOUT_IN_MINUTES);
+    //   const rejected = operator?.rejectedChats?.some((rejectedChat) => {
+    //     return rejectedChat.chatId == chatId && date < rejectedChat.createdAt;
+    //   });
+    //   if (rejected) continue;
+    //   const messageToDelete = await this.prisma.messageToDelete.findFirst({
+    //     where: { chatId: chatId, operatorId: operator.id, isDeleted: false },
+    //   });
+    //   if (messageToDelete) {
+    //     await this.bot.api
+    //       .deleteMessage(operator.telegramId, +messageToDelete.tgMessageId)
+    //       .catch((err) => console.log(err.message));
+    //   }
 
-      messageToDelete
-        ? await trx.messageToDelete.update({
-            where: { id: messageToDelete.id },
-            data: { tgMessageId: data.message_id.toString() },
-          })
-        : await trx.messageToDelete.create({
-            data: {
-              tgMessageId: data.message_id.toString(),
-              operatorId: operator.id,
-              chatId: chatId,
-            },
-          });
-    }
+    // console.log(operator.telegramId);
+
+    const operator = operators[0];
+
+    return this.bot.api.sendMessage(
+      operator.telegramId,
+      `From: *${client?.firstname} ${client?.lastname}*\nTopic: _${topic}_
+        `,
+      {
+        reply_markup: {
+          inline_keyboard: [[{ text: 'Receive', callback_data: `receive$${chatId}` }]],
+          one_time_keyboard: true,
+        },
+        parse_mode: 'MarkdownV2',
+      },
+    );
+
+    //   messageToDelete
+    //     ? await trx.messageToDelete.update({
+    //         where: { id: messageToDelete.id },
+    //         data: { tgMessageId: data.message_id.toString() },
+    //       })
+    //     : await trx.messageToDelete.create({
+    //         data: {
+    //           tgMessageId: data.message_id.toString(),
+    //           operatorId: operator.id,
+    //           chatId: chatId,
+    //         },
+    //       });
+    // }
   }
 
   async sendShowButton(operator: usersWithChats, client: user, chatId: string, topic: string) {
@@ -415,12 +421,12 @@ export class BotService {
     const chat = await this.prisma.chat.findFirst({
       where: {
         id: chatId,
-        status: { not: 'active' },
         operatorId: null,
         isDeleted: false,
       },
       include: { topic: true },
     });
+
     if (!chat) {
       return ctx.editMessageText('Chat already started with other operator');
     }
@@ -495,7 +501,6 @@ export class BotService {
         approvedAt: { not: null },
         blockedAt: null,
         isDeleted: false,
-        shiftStatus: 'inactive',
       },
     });
 
@@ -508,7 +513,6 @@ export class BotService {
         id: chatId,
         status: 'active',
         isDeleted: false,
-        operatorId: operator.id,
         consultationId: { not: null },
       },
       include: { topic: true },
@@ -594,7 +598,6 @@ export class BotService {
         status: 'active',
         operatorId: operator.id,
         isDeleted: false,
-        clientId: { not: null },
       },
     });
 
@@ -815,13 +818,13 @@ export class BotService {
       where: {
         operatorId: operator.id,
         status: 'active',
-        consultationId: { not: null },
-        clientId: { not: null },
+        // consultationId: { not: null },
+        // clientId: { not: null },
       },
       include: { client: true },
     });
 
-    if (!chat) {
+    if (!chat?.consultationId && chat?.clientId) {
       return ctx.reply('No active chats');
     }
 

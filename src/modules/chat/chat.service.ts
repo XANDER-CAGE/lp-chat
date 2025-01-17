@@ -179,6 +179,7 @@ export class ChatService {
             clientId: user.id,
             topicId: topic.id,
             consultationId: dto.consultationId,
+            operatorId: operator?.id,
           },
           include: { messages: true, topic: true, client: true },
         });
@@ -211,6 +212,15 @@ export class ChatService {
 
       await trx.message.createMany({
         data: message,
+      });
+
+      await this.prisma.user.update({
+        where: {
+          id: operator.id,
+        },
+        data: {
+          shiftStatus: 'inactive',
+        },
       });
 
       await trx.consultation.update({
