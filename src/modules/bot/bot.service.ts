@@ -832,8 +832,6 @@ export class BotService {
       return ctx.reply('No active chats');
     }
 
-    this.socketGateWay.disconnectChatMembers(chat?.consultationId);
-
     return this.prisma.$transaction(async (trx) => {
       await trx.chat.update({
         where: { id: chat.id },
@@ -873,6 +871,8 @@ export class BotService {
           },
         });
       }
+
+      this.socketGateWay.disconnectChatMembers(chat?.consultationId);
     });
   }
 
