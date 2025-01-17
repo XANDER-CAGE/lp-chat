@@ -2,7 +2,12 @@ import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { User } from 'src/common/decorator/user.decorator';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CreateMessageDto, GetMessagesByChatIdDto } from './dto/message.dto';
+import {
+  CreateMessageDto,
+  CreatePaymentMessageDto,
+  CreateRateMessageDto,
+  GetMessagesByChatIdDto,
+} from './dto/message.dto';
 import { IUser } from 'src/common/interface/my-req.interface';
 import { CoreApiResponse } from 'src/common/response-class/core-api.response';
 import { AuthGuard } from 'src/common/guard/auth.guard';
@@ -29,6 +34,24 @@ export class ChatController {
   @Post('start')
   async startChatWithOperator(@Body() dto: CreateMessageDto, @User() user: IUser) {
     const data = await this.chatService.startChatWithOperator(dto, user);
+    return CoreApiResponse.success(data);
+  }
+
+  @ApiOperation({
+    summary: 'This api saved payment message',
+  })
+  @Post('payment-message')
+  async savePaymentMessage(@Body() dto: CreatePaymentMessageDto, @User() user: IUser) {
+    const data = await this.chatService.savePaymentMessage(dto, user);
+    return CoreApiResponse.success(data);
+  }
+
+  @ApiOperation({
+    summary: 'This api saved rate message',
+  })
+  @Post('rate-message')
+  async saveRateMessage(@Body() dto: CreateRateMessageDto, @User() user: IUser) {
+    const data = await this.chatService.saveRateMessage(dto, user);
     return CoreApiResponse.success(data);
   }
 

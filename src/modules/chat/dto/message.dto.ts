@@ -3,6 +3,7 @@ import {
   IsArray,
   IsDate,
   IsEnum,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
@@ -79,4 +80,31 @@ export class UpdateMessageDto extends MessageDto {
   @ApiProperty()
   @IsString()
   id: string;
+}
+
+export class CreatePaymentMessageDto {
+  @ApiPropertyOptional()
+  @IsString()
+  consultationId: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  transactionId: string;
+}
+
+export class CreateRateMessageDto {
+  @ApiPropertyOptional()
+  @IsString()
+  consultationId: string;
+
+  @ApiPropertyOptional()
+  @IsNumber()
+  @Length(1, 5)
+  rate: number;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsNotEmpty()
+  @IsOptional()
+  comment: string;
 }
