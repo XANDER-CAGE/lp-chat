@@ -112,6 +112,10 @@ export class ChatService {
   }
 
   async startChatWithOperator(dto: CreateMessageDto, user: IUser) {
+    let topic = await this.prisma.topic.findFirst({
+      where: { name: 'other', isDeleted: false },
+    });
+
     const consultation = await this.prisma.consultation.findFirst({
       where: {
         id: dto.consultationId,
@@ -143,115 +147,116 @@ export class ChatService {
       throw new NotFoundException('Operator not found');
     }
 
-    return this.prisma.$transaction(async (trx) => {
-      let topic = await this.prisma.topic.findFirst({
-        where: { name: 'other', isDeleted: false },
-      });
-
-      if (!topic) {
-        topic = await trx.topic.create({
-          data: {
-            id: objectId(),
-            name: 'other',
-            description: 'other',
-          },
-        });
-      }
-
-      if (!topic) {
-        throw new NotFoundException('Topic not found');
-      }
-
-      let chat: any;
-      if (consultation?.chatId) {
-        chat = await this.prisma.chat.findFirst({
-          where: {
-            id: consultation?.id,
-            status: 'init',
-          },
-        });
-
-        if (!chat) {
-          throw new NotFoundException('Chat not found');
-        }
-      } else {
-        chat = await trx.chat.create({
-          data: {
-            status: 'active',
-            clientId: user.id,
-            topicId: topic.id,
-            consultationId: dto.consultationId,
-            operatorId: operator?.id,
-          },
-          include: { messages: true, topic: true, client: true },
-        });
-      }
-
-      let message = [];
-
-      for (const mes of dto.messages) {
-        let file: any;
-        if (mes.fileId) {
-          file = await this.prisma.file.findFirst({
-            where: { id: mes.fileId },
+    return await this.prisma.$transaction(async (trx) => {
+      try {
+        if (!topic) {
+          topic = await trx.topic.create({
+            data: {
+              id: objectId(),
+              name: 'other',
+              description: 'other',
+            },
           });
-          if (!file) throw new NotFoundException('File not found');
         }
 
-        message.push({
-          id: objectId(),
-          authorId: user.id,
-          chatId: chat.id,
-          content: mes.content,
-          fileId: mes.fileId,
-          type: mes.type,
-          transactionId: mes.transaction_id,
-          rate: mes.rate || null,
-          repliedMessageId: mes.repliedMessageId,
-          createdAt: mes.createdAt,
+        if (!topic) {
+          throw new NotFoundException('Topic not found');
+        }
+
+        let chat: any;
+        if (consultation?.chatId) {
+          chat = await this.prisma.chat.findFirst({
+            where: {
+              id: consultation?.id,
+              status: 'init',
+            },
+          });
+
+          if (!chat?.id) {
+            throw new NotFoundException('Chat not found');
+          }
+        } else {
+          chat = await trx.chat.create({
+            data: {
+              status: 'active',
+              clientId: user.id,
+              topicId: topic.id,
+              consultationId: dto.consultationId,
+              operatorId: operator?.id,
+            },
+            include: { messages: true, topic: true, client: true },
+          });
+        }
+
+        let message = [];
+
+        for (const mes of dto.messages) {
+          let file: any;
+          if (mes.fileId) {
+            file = await this.prisma.file.findFirst({
+              where: { id: mes.fileId },
+            });
+            if (!file) throw new NotFoundException('File not found');
+          }
+
+          message.push({
+            id: objectId(),
+            authorId: user.id,
+            chatId: chat.id,
+            content: mes.content,
+            fileId: mes.fileId,
+            type: mes.type,
+            transactionId: mes.transaction_id,
+            rate: mes.rate || null,
+            repliedMessageId: mes.repliedMessageId,
+            createdAt: mes.createdAt,
+          });
+        }
+
+        await trx.message.createMany({
+          data: message,
         });
-      }
 
-      await trx.message.createMany({
-        data: message,
-      });
+        await trx.user.update({
+          where: {
+            id: operator.id,
+          },
+          data: {
+            shiftStatus: 'inactive',
+          },
+        });
 
-      await this.prisma.user.update({
-        where: {
-          id: operator.id,
-        },
-        data: {
-          shiftStatus: 'inactive',
-        },
-      });
+        await trx.consultation.update({
+          where: {
+            id: dto.consultationId,
+          },
+          data: {
+            chatId: chat.id,
+            topicId: chat.topicId,
+          },
+        });
 
-      await trx.consultation.update({
-        where: {
-          id: dto.consultationId,
-        },
-        data: {
+        await this.getAllActiveOperators();
+
+        // await this.botService.sendShowButton(operator, chat.client, chat.id, chat.topic.name);
+
+        await this.botService.sendReceiveConversationButton(
+          [operator],
+          chat.client,
+          chat.id,
+          chat.topic.name,
+          trx,
+        );
+
+        return {
+          success: true,
           chatId: chat.id,
-          topicId: chat.topicId,
-        },
-      });
-
-      await this.getAllActiveOperators();
-
-      // await this.botService.sendShowButton(operator, chat.client, chat.id, chat.topic.name);
-
-      await this.botService.sendReceiveConversationButton(
-        [operator],
-        chat.client,
-        chat.id,
-        chat.topic.name,
-        trx,
-      );
-
-      return {
-        success: true,
-        chatId: chat.id,
-        consultationId: chat.consultationId,
-      };
+          consultationId: chat.consultationId,
+        };
+      } catch (error) {
+        await this.prisma.$disconnect();
+        throw error;
+      }
     });
   }
 

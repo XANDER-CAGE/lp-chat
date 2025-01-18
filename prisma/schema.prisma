@@ -1,6 +1,8 @@
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["multiSchema"]
+  provider                   = "prisma-client-js"
+  previewFeatures            = ["multiSchema"]
+  max_open_connections       = 30
+  max_connection_lifetime_ms = 90000
 }
 
 datasource db {

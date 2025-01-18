@@ -65,6 +65,7 @@ export class CreateMessageDto {
 
   @ApiProperty({ type: [MessageDto] })
   @IsArray()
+  @IsNotEmpty()
   @Type(() => MessageDto)
   messages: MessageDto[];
 }
