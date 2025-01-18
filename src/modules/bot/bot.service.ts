@@ -171,8 +171,6 @@ export class BotService {
       },
     });
 
-    console.log(order);
-
     if (!consultation?.userId) {
       return ctx.reply('Consultation data is missing or invalid.');
     }
@@ -226,6 +224,7 @@ export class BotService {
       },
       data: {
         operatorId: operator.id,
+        status: 'active',
       },
     });
 
@@ -845,6 +844,13 @@ export class BotService {
       return ctx.reply('No active chats');
     }
 
+    const activeConsultationOrder = await this.prisma.consultationOrder.findFirst({
+      where: {
+        consultationId: chat?.consultationId,
+        status: 'active',
+      },
+    });
+
     return this.prisma.$transaction(async (trx) => {
       await trx.chat.update({
         where: { id: chat.id },
@@ -873,6 +879,17 @@ export class BotService {
         orderBy: { order: 'asc' },
         select: { id: true, consultationId: true },
       });
+
+      if (activeConsultationOrder?.id) {
+        await trx.consultationOrder.update({
+          where: {
+            id: activeConsultationOrder?.id,
+          },
+          data: {
+            status: 'done',
+          },
+        });
+      }
 
       if (order?.id) {
         await this.takeNextClient(ctx, operator, order, trx);
