@@ -14,6 +14,7 @@ import { usersWithChats } from 'src/common/type/usersWithChats.type';
 import { SocketGateway } from '../chat/socket.gateway';
 import { ConsultationStatus, MessageTypeEnum } from '../chat/enum';
 import { ChatService } from '../chat/chat.service';
+import { existDoctorInfo } from '../prisma/query';
 
 @Injectable()
 export class BotService {
@@ -507,6 +508,8 @@ export class BotService {
       return ctx.reply('You have no right');
     }
 
+    const existDoctorWithQuery: any = await existDoctorInfo(this.prisma, operator?.doctorId);
+
     const chat = await this.prisma.chat.findFirst({
       where: {
         id: chatId,
@@ -576,7 +579,12 @@ export class BotService {
         await ctx.reply(formattedMessage, { parse_mode: 'MarkdownV2' });
       }
 
-      return this.socketGateWay.sendMessageToAcceptOperator(chat?.consultationId, operator);
+      const sendMessage = {
+        ...operator,
+        specialties: existDoctorWithQuery?.specialties || null,
+      };
+
+      return this.socketGateWay.sendMessageToAcceptOperator(chat?.consultationId, sendMessage);
     });
   }
 
@@ -721,6 +729,8 @@ export class BotService {
     await this.fileService.downloadToStatic(file.id);
     const filename = `${file.id}${extname(file.name)}`;
     const inputFile = new InputFile(pathToStatic + filename);
+    console.log(inputFile);
+
     await this.bot.api.sendDocument(tgUserId, inputFile, {
       reply_parameters: replyParams,
       caption: content,
@@ -754,6 +764,8 @@ export class BotService {
       ? { message_id: +message.repliedMessage.tgMsgId }
       : null;
     if (message.fileId) {
+      console.log(message.file);
+
       return await this.fileToBot(
         +operator.telegramId,
         message.file,

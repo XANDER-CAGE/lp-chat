@@ -16,6 +16,7 @@ import { objectId } from 'src/common/util/formate-message.util';
 import { IUser } from 'src/common/interface/my-req.interface';
 import { ConsultationStatus, MessageTypeEnum } from './enum';
 import { SocketGateway } from './socket.gateway';
+import { messagesQuery } from 'src/modules/prisma/query';
 
 @Injectable()
 export class ChatService {
@@ -82,6 +83,7 @@ export class ChatService {
         },
         include: { chat: true },
       });
+
       if (chat.status == 'init') {
         const operators = await this.prisma.user.findMany({
           where: {
@@ -514,6 +516,8 @@ export class ChatService {
         author: true,
         repliedMessage: { include: { file: true } },
         file: true,
+        transaction: true,
+        acceptDoctor: true,
       },
       orderBy: { createdAt: 'desc' },
       skip,
@@ -557,53 +561,55 @@ export class ChatService {
       },
     });
 
-    const messages = await this.prisma.message.findMany({
-      select: {
-        id: true,
-        content: true,
-        chatId: true,
-        createdAt: true,
-        updatedAt: true,
-        type: true,
-        rate: true,
-        author: {
-          select: {
-            id: true,
-            firstname: true,
-            lastname: true,
-            userId: true,
-            doctorId: true,
-          },
-        },
-        acceptDoctor: true,
-        repliedMessage: {
-          select: {
-            id: true,
-            chatId: true,
-            file: true,
-          },
-        },
-        file: true,
-      },
-      where: {
-        chat: {
-          OR: [
-            {
-              clientId: userId,
-            },
-            {
-              operatorId: userId,
-            },
-          ],
-        },
-        isDeleted: false,
-      },
-      orderBy: [
-        {
-          createdAt: 'asc',
-        },
-      ],
-    });
+    // const messages = await this.prisma.message.findMany({
+    //   select: {
+    //     id: true,
+    //     content: true,
+    //     chatId: true,
+    //     createdAt: true,
+    //     updatedAt: true,
+    //     type: true,
+    //     rate: true,
+    //     author: {
+    //       select: {
+    //         id: true,
+    //         firstname: true,
+    //         lastname: true,
+    //         userId: true,
+    //         doctorId: true,
+    //       },
+    //     },
+    //     acceptDoctor: true,
+    //     repliedMessage: {
+    //       select: {
+    //         id: true,
+    //         chatId: true,
+    //         file: true,
+    //       },
+    //     },
+    //     file: true,
+    //   },
+    //   where: {
+    //     chat: {
+    //       OR: [
+    //         {
+    //           clientId: userId,
+    //         },
+    //         {
+    //           operatorId: userId,
+    //         },
+    //       ],
+    //     },
+    //     isDeleted: false,
+    //   },
+    //   orderBy: [
+    //     {
+    //       createdAt: 'asc',
+    //     },
+    //   ],
+    // });
+
+    const messages = await messagesQuery(this.prisma, { clientId: userId, operatorId: userId });
 
     return { activeChat, messages };
   }

@@ -22,7 +22,7 @@ export class FileService {
     //   throw new ForbiddenException('Only image files are allowed');
     // }
 
-    const orginalName: string = file.originalname.trim().replace(' ', '');
+    const orginalName: string = file.originalname.trim().replace(/ /g, '');
     const fileBuffer = file.buffer;
 
     if (fileBuffer?.length / 1_000_000 > 20) {
