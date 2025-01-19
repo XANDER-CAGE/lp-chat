@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { User } from 'src/common/decorator/user.decorator';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -7,6 +7,7 @@ import {
   CreatePaymentMessageDto,
   CreateRateMessageDto,
   GetMessagesByChatIdDto,
+  PayTransactionDto,
 } from './dto/message.dto';
 import { IUser } from 'src/common/interface/my-req.interface';
 import { CoreApiResponse } from 'src/common/response-class/core-api.response';
@@ -34,6 +35,19 @@ export class ChatController {
   @Post('start')
   async startChatWithOperator(@Body() dto: CreateMessageDto, @User() user: IUser) {
     const data = await this.chatService.startChatWithOperator(dto, user);
+    return CoreApiResponse.success(data);
+  }
+
+  @ApiOperation({
+    summary: 'Start pay method',
+  })
+  @Post('pay/:consultationId')
+  async payTransaction(
+    @Body() payload: PayTransactionDto,
+    @Param('consultationId') consultationId: string,
+    @User() user: IUser,
+  ) {
+    const data = await this.chatService.pay(consultationId, payload, user);
     return CoreApiResponse.success(data);
   }
 

@@ -89,6 +89,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     socket['chatId'] = exitConsultation?.chatId;
     socket['consultationId'] = consultationId;
     this.server.in(socket.id).socketsJoin(consultationId.toString());
+    console.log('join', socket.id);
   }
 
   async handleDisconnect(socket: Socket): Promise<void> {
@@ -100,7 +101,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   sendMessageToAcceptOperator(consultationId: string, message: any) {
-    this.server.to(consultationId).emit('accepted', CoreApiResponse.success(message));
+    return this.server.to(consultationId).emit('accepted', CoreApiResponse.success(message));
   }
 
   disconnectChatMembers(consultationId: string) {

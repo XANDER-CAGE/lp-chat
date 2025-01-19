@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 
-export function messagesQuery(prisma: PrismaClient, { clientId, operatorId }) {
+export function messagesQuery(prisma: PrismaClient, { clientId, operatorId, consultationId }) {
   return prisma.$queryRaw`
     SELECT DISTINCT m.id           AS "id",
                 m.content      AS "content",
@@ -47,11 +47,13 @@ export function messagesQuery(prisma: PrismaClient, { clientId, operatorId }) {
                     END        AS "repliedMessage",
                 to_jsonb(f.*)  AS "file"
 FROM chat.message AS m
+         JOIN chat.chat as ch on ch.id = m.chat_id and ch.is_deleted is false
          LEFT JOIN chat."user" AS a ON m."author_id" = a.id and a.is_deleted is false
          LEFT JOIN doctor.doctors AS ad ON m."accept_doctor_id" = ad.id and ad.is_deleted is false
          LEFT JOIN chat.message AS rm ON m."replied_message_id" = rm.id and rm.is_deleted is false
          LEFT JOIN file.files AS f ON m."file_id" = f.id and f.is_deleted is false
 WHERE m."is_deleted" = FALSE
+  and ch.consultation_id = ${consultationId}
   AND m."chat_id" IN (SELECT c.id
                       FROM chat.chat AS c
                       WHERE c."client_id" = ${clientId}

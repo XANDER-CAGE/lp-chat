@@ -2,11 +2,14 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsArray,
   IsDate,
+  IsDefined,
   IsEnum,
   IsNotEmpty,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
+  IsUUID,
   Length,
   ValidateIf,
 } from 'class-validator';
@@ -45,13 +48,13 @@ export class MessageDto {
   @IsString()
   @Length(36)
   @ValidateIf((x) => x.type == MessageTypeEnum.Payment)
-  transaction_id: string;
+  transactionId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsNumber()
   @ValidateIf((x) => x.type == MessageTypeEnum.Rate)
-  rate: number;
+  rate?: number;
 }
 
 export class CreateMessageDto {
@@ -108,4 +111,26 @@ export class CreateRateMessageDto {
   @IsNotEmpty()
   @IsOptional()
   comment: string;
+}
+
+export class PayTransactionDto {
+  @ApiProperty({ example: 'payme' })
+  @IsString()
+  paymentProvider: string;
+
+  @ApiProperty({ example: 50000.0 })
+  @IsDefined()
+  @IsNumber()
+  amount: number;
+
+  @IsString()
+  @IsUUID()
+  @ApiProperty({ example: 'transactionId' })
+  transactionId: string;
+
+  @IsObject()
+  @IsOptional()
+  @ApiProperty({ default: CreateMessageDto })
+  @Type(() => CreateMessageDto)
+  startChat?: CreateMessageDto;
 }

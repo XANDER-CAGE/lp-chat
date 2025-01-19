@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateChatDto } from './dto/chat.dto';
 import { BotService } from '../bot/bot.service';
@@ -9,12 +9,13 @@ import {
   CreatePaymentMessageDto,
   CreateRateMessageDto,
   GetMessagesByChatIdDto,
+  PayTransactionDto,
 } from './dto/message.dto';
 import { CreateRatingDto } from './dto/create-rating.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { objectId } from 'src/common/util/formate-message.util';
 import { IUser } from 'src/common/interface/my-req.interface';
-import { ConsultationStatus, MessageTypeEnum } from './enum';
+import { ConsultationStatus, ConsultationTransactionStatus, MessageTypeEnum } from './enum';
 import { SocketGateway } from './socket.gateway';
 import { messagesQuery } from 'src/modules/prisma/query';
 
@@ -59,7 +60,7 @@ export class ChatService {
       );
     }
 
-    for (const mes of dto.messages) {
+    for (const mes of dto?.messages) {
       let file: any;
       if (mes.fileId) {
         file = await this.prisma.file.findFirst({
@@ -76,7 +77,7 @@ export class ChatService {
           content: mes.content,
           fileId: mes.fileId,
           type: mes.type,
-          transactionId: mes.transaction_id,
+          transactionId: mes.transactionId,
           rate: mes.rate || null,
           repliedMessageId: mes.repliedMessageId,
           createdAt: mes.createdAt,
@@ -111,11 +112,7 @@ export class ChatService {
     };
   }
 
-  async startChatWithOperator(dto: CreateMessageDto, user: IUser) {
-    let topic = await this.prisma.topic.findFirst({
-      where: { name: 'other', isDeleted: false },
-    });
-
+  async startChatWithOperator(dto: CreateMessageDto, user: IUser, parentTrx = null) {
     const consultation = await this.prisma.consultation.findFirst({
       where: {
         id: dto.consultationId,
@@ -147,7 +144,12 @@ export class ChatService {
       throw new NotFoundException('Operator not found');
     }
 
-    return await this.prisma.$transaction(async (trx) => {
+    return this.prisma.$transaction(async (trx) => {
+      trx = parentTrx ? parentTrx : trx;
+
+      let topic = await this.prisma.topic.findFirst({
+        where: { name: 'other', isDeleted: false },
+      });
       try {
         if (!topic) {
           topic = await trx.topic.create({
@@ -206,7 +208,7 @@ export class ChatService {
             content: mes.content,
             fileId: mes.fileId,
             type: mes.type,
-            transactionId: mes.transaction_id,
+            transactionId: mes.transactionId,
             rate: mes.rate || null,
             repliedMessageId: mes.repliedMessageId,
             createdAt: mes.createdAt,
@@ -236,8 +238,6 @@ export class ChatService {
           },
         });
 
-        await this.getAllActiveOperators();
-
         // await this.botService.sendShowButton(operator, chat.client, chat.id, chat.topic.name);
 
         await this.botService.sendReceiveConversationButton(
@@ -248,6 +248,8 @@ export class ChatService {
           trx,
         );
 
+        await this.getAllActiveOperators();
+
         return {
           success: true,
           chatId: chat.id,
@@ -257,6 +259,59 @@ export class ChatService {
         await this.prisma.$disconnect();
         throw error;
       }
+    });
+  }
+
+  async pay(id: string, payload: PayTransactionDto, user: IUser) {
+    const { paymentProvider, amount, transactionId } = payload;
+
+    const transaction = await this.prisma.transactions.findFirst({
+      where: { id: transactionId },
+    });
+
+    if (!transaction?.id && transaction.expiresAt <= new Date()) {
+      throw new BadRequestException('Transaction expired');
+    }
+
+    return this.prisma.$transaction(async (trx) => {
+      const consultation = await trx.consultation.update({
+        where: { id },
+        data: {
+          isPayed: true,
+          status: ConsultationStatus.IN_PROGRESS,
+        },
+      });
+
+      const transaction = await trx.transactions.update({
+        where: { id: transactionId },
+        data: {
+          status: ConsultationTransactionStatus.PAYED,
+          payedAmount: amount,
+          provider: paymentProvider,
+        },
+      });
+
+      if (payload.startChat?.messages?.length >= 0) {
+        payload.startChat.messages = [
+          ...payload.startChat?.messages,
+          {
+            type: MessageTypeEnum.Payment,
+            transactionId: payload.transactionId,
+            content: 'Success payment',
+          },
+        ];
+      }
+
+      await this.startChatWithOperator(
+        {
+          ...payload.startChat,
+          consultationId: id,
+        },
+        user,
+        trx,
+      );
+
+      return { consultation, transaction };
     });
   }
 
@@ -614,7 +669,11 @@ export class ChatService {
     //   ],
     // });
 
-    const messages = await messagesQuery(this.prisma, { clientId: userId, operatorId: userId });
+    const messages = await messagesQuery(this.prisma, {
+      clientId: userId,
+      operatorId: userId,
+      consultationId: dto.consultationId,
+    });
 
     return { activeChat, messages };
   }

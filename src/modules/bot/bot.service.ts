@@ -729,7 +729,6 @@ export class BotService {
     await this.fileService.downloadToStatic(file.id);
     const filename = `${file.id}${extname(file.name)}`;
     const inputFile = new InputFile(pathToStatic + filename);
-    console.log(inputFile);
 
     await this.bot.api.sendDocument(tgUserId, inputFile, {
       reply_parameters: replyParams,
@@ -764,8 +763,6 @@ export class BotService {
       ? { message_id: +message.repliedMessage.tgMsgId }
       : null;
     if (message.fileId) {
-      console.log(message.file);
-
       return await this.fileToBot(
         +operator.telegramId,
         message.file,

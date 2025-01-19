@@ -15,3 +15,8 @@ export enum ConsultationStatus {
   IN_PROGRESS = 1,
   FINISHED = 2,
 }
+
+export enum ConsultationTransactionStatus {
+  NOT_PAYED = 0,
+  PAYED = 1,
+}
