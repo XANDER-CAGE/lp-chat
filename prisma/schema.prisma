@@ -309,13 +309,14 @@ model transactions {
 }
 
 model ConsultationOrder {
-  id             String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  userId         String   @map("user_id")
-  createdAt      DateTime @default(now()) @map("created_at")
-  consultationId String   @map("consultation_id")
-  order          Int?     @default(autoincrement())
-  operatorId     String?  @map("operator_id")
-  status         String
+  id                 String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId             String    @map("user_id")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  consultationId     String    @map("consultation_id")
+  order              Int?      @default(autoincrement())
+  operatorId         String?   @map("operator_id")
+  status             String
+  estimateAcceptTime DateTime? @map("estimate_accept_time")
 
   @@map("consultation_order")
   @@schema("consultation")
