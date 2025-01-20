@@ -5,6 +5,7 @@ import { BotService } from '../bot/bot.service';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { findOperatorsCronId } from 'src/common/var/index.var';
 import {
+  CreateDraftMessageDto,
   CreateMessageDto,
   CreatePaymentMessageDto,
   CreateRateMessageDto,
@@ -102,8 +103,67 @@ export class ChatService {
         job.start();
         return history;
       }
+
       await this.botService.messageViaBot(message.id);
     }
+
+    return {
+      success: true,
+      chatId: chat.id,
+      consultationId: chat.consultationId,
+    };
+  }
+
+  async saveDraftMessage(dto: CreateDraftMessageDto, user: IUser) {
+    const consultation = await this.prisma.consultation.findFirst({
+      where: { id: dto.consultationId },
+    });
+
+    if (!consultation?.id) {
+      throw new NotFoundException('Consultation not found');
+    }
+
+    let chat = await this.prisma.chat.findFirst({
+      where: {
+        id: consultation?.chatId,
+        clientId: user.id,
+        status: { in: ['init'] },
+        consultationId: dto.consultationId,
+      },
+      include: { messages: true },
+    });
+
+    if (!chat) {
+      throw new NotFoundException('Chat not found');
+    }
+
+    const messages = [];
+    for (const mes of dto?.messages) {
+      let file: any;
+      if (mes.fileId) {
+        file = await this.prisma.file.findFirst({
+          where: { id: mes.fileId },
+        });
+        if (!file) throw new NotFoundException('File not found');
+      }
+
+      messages.push({
+        id: objectId(),
+        authorId: user.id,
+        chatId: chat.id,
+        content: mes.content,
+        fileId: mes.fileId,
+        type: mes.type,
+        transactionId: mes.transactionId,
+        rate: mes.rate || null,
+        repliedMessageId: mes.repliedMessageId,
+        createdAt: mes.createdAt,
+      });
+    }
+
+    await this.prisma.message.createMany({
+      data: messages,
+    });
 
     return {
       success: true,
@@ -525,12 +585,13 @@ export class ChatService {
       dto.topicId = topic.id;
     }
 
-    if (dto.consultationId) {
-      const consultation = await this.prisma.consultation.findFirst({
-        where: { id: dto.consultationId },
-      });
-      if (!consultation?.id) throw new NotFoundException('Consultation not found');
-    }
+    // if (dto.consultationId) {
+    //   const consultation = await this.prisma.consultation.findFirst({
+    //     where: { id: dto.consultationId },
+    //   });
+
+    //   if (!consultation?.id) throw new NotFoundException('Consultation not found');
+    // }
 
     const chat = await this.prisma.chat.findFirst({
       where: {
@@ -541,6 +602,7 @@ export class ChatService {
       },
       include: { messages: true, client: true, topic: true },
     });
+
     if (chat) return chat;
 
     return trx.chat.create({

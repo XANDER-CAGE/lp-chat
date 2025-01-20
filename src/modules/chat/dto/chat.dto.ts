@@ -18,7 +18,6 @@ export class CreateChatDto {
     required: false,
     description: 'User ID',
   })
-  // @IsOptional()
   @IsString()
   consultationId?: string;
 }

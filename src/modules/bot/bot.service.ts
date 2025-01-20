@@ -155,6 +155,24 @@ export class BotService {
       data: { chatId: chat.id, topicId: chat.topicId },
     });
 
+    await this.prisma.chat.update({
+      where: {
+        id: chat.id,
+      },
+      data: {
+        status: 'active',
+        operatorId: operator?.id,
+      },
+    });
+
+    await this.prisma.consultationOrder.update({
+      where: { id: order.id },
+      data: {
+        status: 'active',
+        operatorId: operator?.id,
+      },
+    });
+
     await this.sendReceiveConversationButton([operator], getClient, chat.id, chat.topic.name);
 
     return { success: true };
@@ -542,6 +560,13 @@ export class BotService {
     await ctx.editMessageText(editedMsgText, { parse_mode: 'MarkdownV2' });
 
     return this.prisma.$transaction(async (trx) => {
+      await this.prisma.user.update({
+        where: { id: operator?.id },
+        data: {
+          shiftStatus: 'inactive',
+        },
+      });
+
       await trx.consultation.update({
         where: { id: chat.consultationId },
         data: {

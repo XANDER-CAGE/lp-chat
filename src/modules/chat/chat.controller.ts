@@ -3,6 +3,7 @@ import { ChatService } from './chat.service';
 import { User } from 'src/common/decorator/user.decorator';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
+  CreateDraftMessageDto,
   CreateMessageDto,
   CreatePaymentMessageDto,
   CreateRateMessageDto,
@@ -15,6 +16,7 @@ import { AuthGuard } from 'src/common/guard/auth.guard';
 import { findOperatorsCronId } from '../../common/var/index.var';
 import { Cron } from '@nestjs/schedule';
 import { env } from '../../common/config/env.config';
+import { CreateChatDto } from './dto/chat.dto';
 
 @ApiTags('Chat')
 @Controller('chat')
@@ -27,6 +29,21 @@ export class ChatController {
   @ApiOperation({ summary: 'Socket listen (test) return test' })
   sendMessage() {
     return this.chatService.test();
+  }
+
+  @Post('create')
+  async chat(@Body() dto: CreateChatDto, @User() user: IUser) {
+    const data = await this.chatService.chatCreate(dto, user);
+    return CoreApiResponse.success(data);
+  }
+
+  @Post('save-draft-messages')
+  @ApiOperation({
+    summary: 'Save draft messages',
+  })
+  async saveDraftMessage(@Body() dto: CreateDraftMessageDto, @User() user: IUser) {
+    const data = await this.chatService.saveDraftMessage(dto, user);
+    return CoreApiResponse.success(data);
   }
 
   @ApiOperation({

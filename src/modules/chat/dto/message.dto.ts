@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, OmitType } from '@nestjs/swagger';
 import {
   IsArray,
   IsDate,
@@ -72,6 +72,8 @@ export class CreateMessageDto {
   @Type(() => MessageDto)
   messages: MessageDto[];
 }
+
+export class CreateDraftMessageDto extends OmitType(CreateMessageDto, ['operatorId']) {}
 
 export class GetMessagesByChatIdDto {
   @ApiProperty({ default: 'd3761737-05f1-4c53-9576-a69613b8d49d' })
