@@ -902,7 +902,7 @@ export class BotService {
     const activeConsultationBooking = await this.prisma.consultationBooking.findFirst({
       where: {
         consultationId: chat.consultationId,
-        status: 'new',
+        status: 'active',
       },
     });
 
@@ -952,7 +952,7 @@ export class BotService {
             id: activeConsultationBooking?.id,
           },
           data: {
-            startTime: 'done',
+            status: 'done',
           },
         });
       }
@@ -1026,7 +1026,7 @@ export class BotService {
           order by cb.start_time asc
           limit 1;`;
 
-    console.log(operatorBooking, 'oparotBookgin');
+    console.log(operatorBooking, 'opeatorBooking');
 
     if (!operatorBooking) {
       return null;
@@ -1087,7 +1087,7 @@ export class BotService {
 
     const now = new Date();
     const bookingStartTime = booking.startTime!;
-    if (bookingStartTime >= now) {
+    if (bookingStartTime > now) {
       const timeDifference = bookingStartTime.getTime() - now.getTime();
       const hoursLeft = Math.floor(timeDifference / (1000 * 60 * 60));
       const minutesLeft = Math.floor((timeDifference % (1000 * 60 * 60)) / (1000 * 60));
@@ -1117,8 +1117,6 @@ export class BotService {
         reply_markup: inlineKeyboard,
       });
     }
-
-    console.log(booking);
 
     await this.prisma.$transaction(async (trx) => {
       // Proceed with activating the booking if it's ready to start
