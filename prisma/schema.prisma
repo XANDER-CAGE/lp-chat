@@ -285,7 +285,7 @@ model consultation {
   details       Json?     @map("details")
   rank          Int?      @map("rank")
   comment       String?   @map("comment")
-  topicId       String?   @map("topic_id")
+  // topicId       String?   @map("topic_id")
   chatStartedAt DateTime? @map("chat_started_at")
 
   @@map("consultations")

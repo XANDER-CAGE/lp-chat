@@ -178,7 +178,7 @@ export class ChatService {
         id: dto.consultationId,
         status: ConsultationStatus.NEW,
         userId: user.userId,
-        operatorId: null,
+        // operatorId: null,
         // chatId: null,
         // topicId: null,
       },
@@ -229,14 +229,26 @@ export class ChatService {
         if (consultation?.chatId) {
           chat = await this.prisma.chat.findFirst({
             where: {
-              id: consultation?.id,
+              id: consultation?.chatId,
+              consultationId: consultation?.id,
               status: 'init',
             },
+            include: { messages: true, topic: true, client: true },
           });
 
-          if (!chat?.id) {
+          if (!chat) {
             throw new NotFoundException('Chat not found');
           }
+
+          await trx.chat.update({
+            where: {
+              id: chat?.id,
+            },
+            data: {
+              operatorId: dto.operatorId,
+              status: 'active',
+            },
+          });
         } else {
           chat = await trx.chat.create({
             data: {
@@ -294,7 +306,9 @@ export class ChatService {
           },
           data: {
             chatId: chat.id,
-            topicId: chat.topicId,
+            operatorId: dto.operatorId,
+            status: 1,
+            // topicId: chat.topicId,
           },
         });
 
@@ -383,7 +397,7 @@ export class ChatService {
         userId: user.userId,
         operatorId: null,
         chatId: null,
-        topicId: null,
+        // topicId: null,
       },
     });
 
@@ -429,7 +443,7 @@ export class ChatService {
       },
       data: {
         chatId: chat?.id,
-        topicId: topic?.id,
+        // topicId: topic?.id,
       },
     });
 
@@ -454,7 +468,7 @@ export class ChatService {
         userId: user.userId,
         operatorId: { not: null },
         chatId: { not: null },
-        topicId: { not: null },
+        // topicId: { not: null },
       },
     });
 

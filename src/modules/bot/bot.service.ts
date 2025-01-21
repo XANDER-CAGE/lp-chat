@@ -152,7 +152,7 @@ export class BotService {
 
     await this.prisma.consultation.update({
       where: { id: consultation.id },
-      data: { chatId: chat.id, topicId: chat.topicId },
+      data: { chatId: chat.id },
     });
 
     await this.prisma.chat.update({
@@ -182,9 +182,9 @@ export class BotService {
     const consultation = await this.prisma.consultation.findFirst({
       where: {
         id: order.consultationId,
-        operatorId: null,
-        chatId: null,
-        topicId: null,
+        // operatorId: null,
+        // chatId: null,
+        // topicId: null,
         status: ConsultationStatus.NEW,
         // userId: { not: null },
       },
@@ -234,7 +234,7 @@ export class BotService {
 
     await trx.consultation.update({
       where: { id: consultation.id },
-      data: { chatId: chat.id, topicId: chat.topicId, status: ConsultationStatus.IN_PROGRESS },
+      data: { chatId: chat.id, status: ConsultationStatus.IN_PROGRESS },
     });
 
     await trx.consultationOrder.update({
@@ -484,7 +484,7 @@ export class BotService {
         data: {
           chatId: chat.id,
           operatorId: operator.id,
-          topicId: chat.topicId,
+          // topicId: chat.topicId,
           chatStartedAt: new Date(),
           status: ConsultationStatus.IN_PROGRESS,
         },
@@ -574,7 +574,7 @@ export class BotService {
         data: {
           chatId: chat.id,
           operatorId: operator.id,
-          topicId: chat.topicId,
+          // topicId: chat.topicId,
           chatStartedAt: new Date(),
           status: ConsultationStatus.IN_PROGRESS,
         },
@@ -900,7 +900,7 @@ export class BotService {
         data: {
           status: ConsultationStatus.FINISHED,
           chatId: chat?.id,
-          topicId: chat?.topicId,
+          // topicId: chat?.topicId,
         },
       });
 
