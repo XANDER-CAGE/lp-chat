@@ -87,20 +87,7 @@ export class ChatService {
       });
 
       if (chat.status == 'init') {
-        const operators = await this.prisma.user.findMany({
-          where: {
-            approvedAt: { not: null },
-            telegramId: { not: null },
-            blockedAt: null,
-            operatorChats: { none: { status: 'active' } },
-            shiftStatus: 'active',
-          },
-        });
         const history: any = await this.getMessages({}, user);
-        history.availableOperators = operators.length;
-        const job = this.schedulerRegistry.getCronJob(findOperatorsCronId);
-
-        job.start();
         return history;
       }
 

@@ -90,7 +90,7 @@ export class BotService {
 
     const order = await this.prisma.consultationOrder.findFirst({
       where: { status: 'waiting', operatorId: null },
-      orderBy: { order: 'asc' },
+      orderBy: { order: 'desc' },
       select: { id: true, consultationId: true },
     });
 
@@ -190,7 +190,7 @@ export class BotService {
       },
     });
 
-    if (!consultation?.userId) {
+    if (!consultation) {
       return ctx.reply('Consultation data is missing or invalid.');
     }
 
@@ -912,7 +912,7 @@ export class BotService {
 
       const order = await this.prisma.consultationOrder.findFirst({
         where: { status: 'waiting', operatorId: null },
-        orderBy: { order: 'asc' },
+        orderBy: { order: 'desc' },
         select: { id: true, consultationId: true },
       });
 
