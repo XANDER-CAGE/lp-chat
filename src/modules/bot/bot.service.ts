@@ -1026,8 +1026,6 @@ export class BotService {
           order by cb.start_time asc
           limit 1;`;
 
-    console.log(operatorBooking, 'opeatorBooking');
-
     if (!operatorBooking) {
       return null;
     }

@@ -70,6 +70,10 @@ export class ChatService {
         if (!file) throw new NotFoundException('File not found');
       }
 
+      if (mes.type === MessageTypeEnum.Text && mes.content === '') {
+        continue;
+      }
+
       const message = await this.prisma.message.create({
         data: {
           authorId: user.id,
