@@ -514,6 +514,7 @@ export class BotService {
       });
     });
   }
+
   async showMessageButton(ctx: Context, chatId: string) {
     const operator = await this.prisma.user.findFirst({
       where: {
@@ -963,5 +964,41 @@ export class BotService {
         inline_keyboard: [[{ text: 'Receive', callback_data: `receive$${chatId}` }]],
       },
     });
+  }
+
+  async checkOperatorBookingTime(ctx: Context) {
+    const operator = await this.prisma.user.findFirst({
+      where: {
+        telegramId: ctx.from.id.toString(),
+        approvedAt: { not: null },
+        isDeleted: false,
+      },
+    });
+
+    if (!operator) {
+      return ctx.reply('Please /register and(or) wait administrator to approve');
+    }
+
+    const chat = await this.prisma.chat.findFirst({
+      where: {
+        operatorId: operator.id,
+        status: 'init',
+        isDeleted: false,
+      },
+    });
+    if (chat) {
+      return ctx.reply(`Cannot leave dialog open`);
+    }
+    if (operator.shiftStatus == 'inactive' || operator.shiftStatus == null) {
+      return ctx.reply(`You've already deactivated your status`);
+    }
+    await this.prisma.shift.create({
+      data: { status: 'inactive', operatorId: operator.id },
+    });
+    await this.prisma.user.update({
+      where: { id: operator.id, isDeleted: false },
+      data: { shiftStatus: 'inactive' },
+    });
+    return ctx.reply(`You've deactivated your status`);
   }
 }

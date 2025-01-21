@@ -182,7 +182,7 @@ export class ChatService {
         approvedAt: { not: null },
         telegramId: { not: null },
         shiftStatus: 'active',
-        operatorChats: { none: { status: 'active' } },
+        // operatorChats: { none: { status: 'active' } },
       },
       include: { rejectedChats: true },
     });
