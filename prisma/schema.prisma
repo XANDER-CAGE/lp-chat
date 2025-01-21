@@ -331,6 +331,21 @@ model ConsultationOperatorState {
   @@schema("consultation")
 }
 
+model consultationBooking {
+  id             String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  operatorId     String?   @map("operator_id")
+  userId         String    @map("user_id")
+  status         String    @map("status")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  startTime      DateTime  @map("start_time")
+  endTime        DateTime? @map("end_time")
+  slot           String    @map("slot")
+  consultationId String    @map("consultation_id")
+
+  @@map("consultation_booking")
+  @@schema("consultation")
+}
+
 model doctor {
   id        String    @id @default(dbgenerated("generate_object_id()")) @db.VarChar(24)
   orgId     String?   @map("org_id")

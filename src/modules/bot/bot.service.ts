@@ -79,13 +79,34 @@ export class BotService {
         blockedAt: null,
         approvedAt: { not: null },
         shiftStatus: 'active',
-        operatorChats: { none: { status: 'active' } },
+        // operatorChats: { none: { status: 'active' } },
       },
       include: { rejectedChats: true },
     });
 
     if (!operator) {
       return ctx.reply('Please /register and(or) wait for the administrator to approve');
+    }
+
+    const existBooking = await this.checkOperatorBookingTime(operator);
+
+    if (existBooking) {
+      return ctx.reply(`You have a booking at ${existBooking.start_time}. Please be prepared.`, {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              // {
+              //   text: 'View Booking Details',
+              //   callback_data: `view_booking$${existBooking.booking_id}`,
+              // },
+              {
+                text: "I'm Ready",
+                callback_data: `get_booking$${existBooking.booking_id}`,
+              },
+            ],
+          ],
+        },
+      });
     }
 
     const order = await this.prisma.consultationOrder.findFirst({
@@ -367,23 +388,6 @@ export class BotService {
     trx = null,
   ) {
     trx = trx ? trx : this.prisma;
-    // for (const operator of operators) {
-    //   const date = new Date();
-    //   date.setMinutes(date.getMinutes() - env.REJECTED_MESSAGE_TIMEOUT_IN_MINUTES);
-    //   const rejected = operator?.rejectedChats?.some((rejectedChat) => {
-    //     return rejectedChat.chatId == chatId && date < rejectedChat.createdAt;
-    //   });
-    //   if (rejected) continue;
-    //   const messageToDelete = await this.prisma.messageToDelete.findFirst({
-    //     where: { chatId: chatId, operatorId: operator.id, isDeleted: false },
-    //   });
-    //   if (messageToDelete) {
-    //     await this.bot.api
-    //       .deleteMessage(operator.telegramId, +messageToDelete.tgMessageId)
-    //       .catch((err) => console.log(err.message));
-    //   }
-
-    // console.log(operator.telegramId);
 
     const operator = operators[0];
 
@@ -399,20 +403,6 @@ export class BotService {
         parse_mode: 'MarkdownV2',
       },
     );
-
-    //   messageToDelete
-    //     ? await trx.messageToDelete.update({
-    //         where: { id: messageToDelete.id },
-    //         data: { tgMessageId: data.message_id.toString() },
-    //       })
-    //     : await trx.messageToDelete.create({
-    //         data: {
-    //           tgMessageId: data.message_id.toString(),
-    //           operatorId: operator.id,
-    //           chatId: chatId,
-    //         },
-    //       });
-    // }
   }
 
   async sendShowButton(operator: usersWithChats, client: user, chatId: string, topic: string) {
@@ -867,6 +857,27 @@ export class BotService {
 
     if (!operator) return;
 
+    const existBooking = await this.checkOperatorBookingTime(operator);
+
+    if (existBooking) {
+      return ctx.reply(`You have a booking at ${existBooking.start_time}. Please be prepared.`, {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              // {
+              //   text: 'View Booking Details',
+              //   callback_data: `view_booking$${existBooking.booking_id}`,
+              // },
+              {
+                text: "I'm Ready",
+                callback_data: `get_booking$${existBooking.booking_id}`,
+              },
+            ],
+          ],
+        },
+      });
+    }
+
     const chat = await this.prisma.chat.findFirst({
       where: {
         operatorId: operator.id,
@@ -877,7 +888,7 @@ export class BotService {
       include: { client: true },
     });
 
-    if (!chat?.consultationId && chat?.clientId) {
+    if (!chat?.consultationId) {
       return ctx.reply('No active chats');
     }
 
@@ -885,6 +896,13 @@ export class BotService {
       where: {
         consultationId: chat?.consultationId,
         status: 'active',
+      },
+    });
+
+    const activeConsultationBooking = await this.prisma.consultationBooking.findFirst({
+      where: {
+        consultationId: chat.consultationId,
+        status: 'new',
       },
     });
 
@@ -928,6 +946,16 @@ export class BotService {
         });
       }
 
+      if (activeConsultationBooking?.id) {
+        await trx.consultationBooking.update({
+          where: {
+            id: activeConsultationBooking?.id,
+          },
+          data: {
+            startTime: 'done',
+          },
+        });
+      }
       if (order?.id) {
         await this.takeNextClient(ctx, operator, order, trx);
       } else {
@@ -966,39 +994,156 @@ export class BotService {
     });
   }
 
-  async checkOperatorBookingTime(ctx: Context) {
+  async checkOperatorBookingTime(operator: user) {
+    const [operatorBooking]: {
+      booking_id: string;
+      user_id: string;
+      chat_id: string;
+      start_time: Date;
+      chat_status: string;
+      consultation_status: string;
+      booking_status: string;
+      priority: number;
+      type: string;
+    }[] = await this.prisma.$queryRaw`
+          select 
+            cb.id as booking_id,
+            cb.user_id,
+            chat_id,
+            start_time,
+            ch.status as chat_status,
+            c.status  as consultation_status,
+            cb.status as booking_status,
+            1         as priority,
+            'booking'    type
+          from consultation.consultation_booking as cb
+              join consultation.consultations as c on c.id = cb.consultation_id
+              join chat.chat as ch on ch.id = c.chat_id and ch.is_deleted is false
+          where cb.status = 'new'
+          and cb.operator_id = ${operator.id}
+          and cb.start_time - NOW() <= INTERVAL '30 minutes'
+          AND cb.start_time >= NOW()
+          order by cb.start_time asc
+          limit 1;`;
+
+    console.log(operatorBooking, 'oparotBookgin');
+
+    if (!operatorBooking) {
+      return null;
+    }
+
+    return operatorBooking;
+
+    // return ctx.reply(`You have a booking at ${operatorBooking.start_time}. Please be prepared.`);
+  }
+
+  async callbackGetBookingButton(ctx: Context, bookingId: string) {
     const operator = await this.prisma.user.findFirst({
       where: {
         telegramId: ctx.from.id.toString(),
+        blockedAt: null,
         approvedAt: { not: null },
-        isDeleted: false,
       },
+      include: { rejectedChats: true },
     });
 
     if (!operator) {
-      return ctx.reply('Please /register and(or) wait administrator to approve');
+      return ctx.reply('Please /register and(or) wait for the administrator to approve');
+    }
+
+    const booking = await this.prisma.consultationBooking.findFirst({
+      where: { id: bookingId },
+      select: { id: true, consultationId: true, startTime: true, status: true },
+    });
+
+    if (!booking) {
+      return ctx.reply('Booking not found');
+    }
+
+    const consultation = await this.prisma.consultation.findFirst({
+      where: { id: booking?.consultationId },
+    });
+
+    if (!consultation) {
+      return ctx.reply('Consultation data is missing or invalid.');
+    }
+
+    const getClient = await this.prisma.user.findFirst({
+      where: { userId: consultation.userId, isDeleted: false, doctorId: null },
+    });
+
+    if (!getClient) {
+      return ctx.reply('Client not found or already deleted');
     }
 
     const chat = await this.prisma.chat.findFirst({
-      where: {
-        operatorId: operator.id,
-        status: 'init',
-        isDeleted: false,
-      },
+      where: { id: consultation?.chatId },
+      include: { client: true, topic: true },
     });
-    if (chat) {
-      return ctx.reply(`Cannot leave dialog open`);
+
+    if (!chat) {
+      return ctx.reply(`Booking chat not found`);
     }
-    if (operator.shiftStatus == 'inactive' || operator.shiftStatus == null) {
-      return ctx.reply(`You've already deactivated your status`);
+
+    const now = new Date();
+    const bookingStartTime = booking.startTime!;
+    if (bookingStartTime >= now) {
+      const timeDifference = bookingStartTime.getTime() - now.getTime();
+      const hoursLeft = Math.floor(timeDifference / (1000 * 60 * 60));
+      const minutesLeft = Math.floor((timeDifference % (1000 * 60 * 60)) / (1000 * 60));
+
+      const timeMessage =
+        hoursLeft > 0
+          ? `Booking starts in ${hoursLeft} hour(s) and ${minutesLeft} minute(s).`
+          : `Booking starts in ${minutesLeft} minute(s).`;
+
+      // Create inline keyboard for user interaction
+      const inlineKeyboard = {
+        inline_keyboard: [
+          [
+            // {
+            //   text: 'View Booking Details',
+            //   callback_data: `view_booking$${booking.id}`,
+            // },
+            {
+              text: "I'm Ready",
+              callback_data: `get_booking$${booking.id}`,
+            },
+          ],
+        ],
+      };
+
+      return ctx.reply(`You have a booking scheduled at ${booking.startTime}. ${timeMessage}`, {
+        reply_markup: inlineKeyboard,
+      });
     }
-    await this.prisma.shift.create({
-      data: { status: 'inactive', operatorId: operator.id },
+
+    console.log(booking);
+
+    await this.prisma.$transaction(async (trx) => {
+      // Proceed with activating the booking if it's ready to start
+      await trx.consultation.update({
+        where: { id: consultation.id },
+        data: { chatId: chat.id, status: ConsultationStatus.IN_PROGRESS },
+      });
+
+      await trx.chat.update({
+        where: { id: chat.id },
+        data: {
+          status: 'active',
+          operatorId: operator?.id,
+        },
+      });
+
+      await trx.consultationBooking.update({
+        where: { id: booking.id },
+        data: {
+          status: 'active',
+          operatorId: operator?.id,
+        },
+      });
+      // Notify the operator and client
+      return this.sendReceiveConversationButton([operator], getClient, chat.id, chat.topic.name);
     });
-    await this.prisma.user.update({
-      where: { id: operator.id, isDeleted: false },
-      data: { shiftStatus: 'inactive' },
-    });
-    return ctx.reply(`You've deactivated your status`);
   }
 }
