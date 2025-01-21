@@ -335,11 +335,13 @@ export class BotService {
         isDeleted: false,
       },
     });
+
     if (operator) {
       return ctx.reply('If you want to change your phone number, please contact administration', {
         reply_markup: { remove_keyboard: true },
       });
     }
+
     await this.prisma.user.create({
       data: {
         firstname: exitDoc.first_name,
@@ -347,9 +349,9 @@ export class BotService {
         phone: contact.phone_number,
         telegramId: ctx.from.id.toString(),
         username: ctx.from.username,
-        doctorId: exitDoc[0].id,
-        createdBy: exitDoc[0].id,
-        email: exitDoc[0].email,
+        doctorId: exitDoc?.id,
+        createdBy: exitDoc.id,
+        email: exitDoc.email,
       },
     });
     ctx.reply('Application successfully saved. Please wait for administrator to approve', {
