@@ -82,10 +82,12 @@ export class FileService {
     const file = await this.prisma.file.findFirst({ where: { id: fileId } });
     if (!file) throw new NotFoundException('File not found');
     const filename = `${file.id}${extname(file.name)}`;
+    console.log(`Downloading ${filename}`);
     const stream = await this.minio.client.getObject(file.bucketName, filename);
     const ws = createWriteStream(pathToStatic + filename);
     stream.pipe(ws);
     ws.on('finish', () => ws.close());
+    console.log(`Downloading finished ${filename}`);
     await new Promise((resolve) => ws.on('finish', resolve));
   }
 
