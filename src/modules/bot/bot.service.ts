@@ -85,7 +85,7 @@ export class BotService {
       include: { rejectedChats: true },
     });
 
-    if (!operator) {
+    if (!operator?.id) {
       return ctx.reply('Please /register and(or) wait for the administrator to approve');
     }
 
@@ -790,13 +790,14 @@ export class BotService {
     await this.fileService.downloadToStatic(file.id);
     const filename = `${file.id}${extname(file.name)}`;
     const inputFile = new InputFile(pathToStatic + filename);
+    console.log('inputFIle', inputFile);
 
     await this.bot.api.sendDocument(tgUserId, inputFile, {
       reply_parameters: replyParams,
       caption: content,
       parse_mode: 'MarkdownV2',
     });
-    await this.fileService.deleteFromStatic(pathToStatic + filename);
+    // await this.fileService.deleteFromStatic(pathToStatic + filename);
   }
 
   async messageViaBot(messageId: string) {
@@ -1104,7 +1105,8 @@ export class BotService {
             cb.id as booking_id,
             cb.user_id,
             chat_id,
-            start_time,
+            cb.start_time,
+            cb.slot,
             ch.status as chat_status,
             c.status  as consultation_status,
             cb.status as booking_status,
