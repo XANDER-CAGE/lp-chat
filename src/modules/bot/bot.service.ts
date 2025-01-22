@@ -84,7 +84,7 @@ export class BotService {
       include: { rejectedChats: true },
     });
 
-    if (!operator) {
+    if (!operator?.id) {
       return ctx.reply('Please /register and(or) wait for the administrator to approve');
     }
 

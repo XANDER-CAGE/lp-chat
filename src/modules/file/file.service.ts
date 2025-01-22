@@ -84,6 +84,7 @@ export class FileService {
     const filename = `${file.id}${extname(file.name)}`;
     console.log(`Downloading ${filename}`);
     const stream = await this.minio.client.getObject(file.bucketName, filename);
+    console.log('Stream started, ', pathToStatic + filename);
     const ws = createWriteStream(pathToStatic + filename);
     stream.pipe(ws);
     ws.on('finish', () => ws.close());
