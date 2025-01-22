@@ -758,12 +758,15 @@ export class BotService {
     const filename = `${file.id}${extname(file.name)}`;
     const inputFile = new InputFile(pathToStatic + filename);
 
+
+    console.log('inputFIle', inputFile);
+    
     await this.bot.api.sendDocument(tgUserId, inputFile, {
       reply_parameters: replyParams,
       caption: content,
       parse_mode: 'MarkdownV2',
     });
-    await this.fileService.deleteFromStatic(pathToStatic + filename);
+    // await this.fileService.deleteFromStatic(pathToStatic + filename);
   }
 
   async messageViaBot(messageId: string) {
