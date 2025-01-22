@@ -33,6 +33,7 @@ export class BotService {
       { command: 'launch', description: "I\'m ready to get a new client. ✅" },
       { command: 'stopdialog', description: 'Stop talking to Clint 🛑' },
       { command: 'queue', description: 'Connecting to a client in the queue 🚶‍♂️🚶‍♀️🚶‍♂️🚶‍♀️🚶‍♂️' },
+      { command: 'getbooking', description: 'Get your booking details 📅' },
     ];
     await this.bot.api.setMyCommands(commands);
     ctx.reply(`Hey, ${ctx.from.first_name}. I'm ${this.bot.botInfo.first_name}`, {
@@ -235,31 +236,50 @@ export class BotService {
       return ctx.reply('Queue user not found');
     }
 
-    let topic = await this.prisma.topic.findFirst({
-      where: { name: 'other', isDeleted: false },
-    });
-
-    if (!topic) {
-      topic = await trx.topic.create({
-        data: {
-          id: objectId(),
-          name: 'other',
-          description: 'other',
+    let chat: any;
+    if (consultation?.chatId) {
+      chat = await trx.chat.findFirst({
+        where: {
+          id: consultation?.chatId,
         },
       });
-    }
 
-    const chat = await trx.chat.create({
-      data: {
-        id: objectId(),
-        status: 'active',
-        clientId: getClient.id,
-        topicId: topic.id,
-        consultationId: consultation.id,
-        operatorId: operator.id,
-      },
-      include: { messages: true, topic: true, client: true },
-    });
+      await trx.chat.update({
+        where: {
+          id: consultation.chatId,
+        },
+        data: {
+          operatorId: operator.id,
+          status: 'active',
+        },
+      });
+    } else {
+      let topic = await this.prisma.topic.findFirst({
+        where: { name: 'other', isDeleted: false },
+      });
+
+      if (!topic) {
+        topic = await trx.topic.create({
+          data: {
+            id: objectId(),
+            name: 'other',
+            description: 'other',
+          },
+        });
+      }
+
+      chat = await trx.chat.create({
+        data: {
+          id: objectId(),
+          status: 'active',
+          clientId: getClient.id,
+          topicId: topic.id,
+          consultationId: consultation.id,
+          operatorId: operator.id,
+        },
+        include: { messages: true, topic: true, client: true },
+      });
+    }
 
     if (!chat) {
       return ctx.reply('Chat data is missing or invalid.');
@@ -279,6 +299,19 @@ export class BotService {
         status: 'active',
       },
     });
+
+    const existDoctorWithQuery: any = await existDoctorInfo(trx, operator?.doctorId);
+
+    if (!existDoctorWithQuery) {
+      throw new NotFoundException('Doctor not found');
+    }
+
+    const sendMessage = {
+      ...operator,
+      specialties: existDoctorWithQuery?.specialties || null,
+    };
+
+    await this.socketGateWay.sendMessageToAcceptOperator(chat?.consultationId, sendMessage);
 
     await this.sendReceiveConversationButton(
       [operator],
@@ -778,6 +811,7 @@ export class BotService {
         repliedMessage: true,
       },
     });
+
     const operator = message.chat.operator;
     const { firstname, lastname } = message.author;
     const topic = message.chat.topic;
@@ -861,7 +895,7 @@ export class BotService {
       where: {
         telegramId: ctx.from.id.toString(),
         approvedAt: { not: null },
-        shiftStatus: 'inactive',
+        // shiftStatus: 'inactive',
       },
     });
 
@@ -981,6 +1015,7 @@ export class BotService {
             },
           );
         }
+
         await this.takeNextClient(ctx, operator, order, trx);
       } else {
         await trx.user.update({
@@ -993,6 +1028,41 @@ export class BotService {
 
       this.socketGateWay.disconnectChatMembers(chat?.consultationId);
     });
+  }
+
+  async commandGetBooking(ctx: Context) {
+    const operator = await this.prisma.user.findFirst({
+      where: {
+        telegramId: ctx.from.id.toString(),
+        approvedAt: { not: null },
+        // shiftStatus: 'inactive',
+      },
+    });
+
+    if (!operator) return;
+
+    const existBooking = await this.checkOperatorBookingTime(operator);
+
+    if (existBooking) {
+      return ctx.reply(`You have a booking at ${existBooking.start_time}. Please be prepared.`, {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              // {
+              //   text: 'View Booking Details',
+              //   callback_data: `view_booking$${existBooking.booking_id}`,
+              // },
+              {
+                text: "I'm Ready",
+                callback_data: `get_booking$${existBooking.booking_id}`,
+              },
+            ],
+          ],
+        },
+      });
+    }
+
+    return ctx.reply('It is not yet time for your booking or not have your booking');
   }
 
   async reject(ctx: Context, chatId: string) {
@@ -1139,6 +1209,19 @@ export class BotService {
         reply_markup: inlineKeyboard,
       });
     }
+
+    const existDoctorWithQuery: any = await existDoctorInfo(this.prisma, operator?.doctorId);
+
+    if (!existDoctorWithQuery) {
+      throw new NotFoundException('Doctor not found');
+    }
+
+    const sendMessage = {
+      ...operator,
+      specialties: existDoctorWithQuery?.specialties || null,
+    };
+
+    await this.socketGateWay.sendMessageToAcceptOperator(chat?.consultationId, sendMessage);
 
     await this.prisma.$transaction(async (trx) => {
       // Proceed with activating the booking if it's ready to start
