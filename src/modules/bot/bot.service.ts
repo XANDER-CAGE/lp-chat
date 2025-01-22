@@ -758,7 +758,7 @@ export class BotService {
     const filename = `${file.id}${extname(file.name)}`;
     const inputFile = new InputFile(pathToStatic + filename);
     console.log('inputFIle', inputFile);
-    
+
     await this.bot.api.sendDocument(tgUserId, inputFile, {
       reply_parameters: replyParams,
       caption: content,
