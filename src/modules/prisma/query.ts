@@ -65,6 +65,8 @@ ORDER BY m."created_at" ASC;
 export async function existDoctorInfo(prisma: PrismaClient, doctorId: string) {
   const [data]: any[] = await prisma.$queryRaw`
         select d.id,
+               d.sip,
+               d.sip_password,
               json_agg(s.*) filter ( where s.id is not null ) as specialties
         from doctor.doctors as d
                 left join doctor.specialties as s on s.id = any (d.specialty_ids) and s.is_deleted is false

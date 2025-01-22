@@ -56,7 +56,7 @@ export class ChatController {
   }
 
   @ApiOperation({
-    summary: 'Start pay method',
+    summary: 'Start chat and pay method',
   })
   @Post('pay/:consultationId')
   async payTransaction(
@@ -64,7 +64,7 @@ export class ChatController {
     @Param('consultationId') consultationId: string,
     @User() user: IUser,
   ) {
-    const data = await this.chatService.pay(consultationId, payload, user);
+    const data = await this.chatService.payStartChatWithOperator(consultationId, payload, user);
     return CoreApiResponse.success(data);
   }
 

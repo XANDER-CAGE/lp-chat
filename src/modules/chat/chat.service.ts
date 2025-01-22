@@ -18,7 +18,7 @@ import { objectId } from 'src/common/util/formate-message.util';
 import { IUser } from 'src/common/interface/my-req.interface';
 import { ConsultationStatus, ConsultationTransactionStatus, MessageTypeEnum } from './enum';
 import { SocketGateway } from './socket.gateway';
-import { messagesQuery } from 'src/modules/prisma/query';
+import { existDoctorInfo, messagesQuery } from 'src/modules/prisma/query';
 
 @Injectable()
 export class ChatService {
@@ -62,13 +62,13 @@ export class ChatService {
     }
 
     for (const mes of dto?.messages) {
-      let file: any;
-      if (mes.fileId) {
-        file = await this.prisma.file.findFirst({
-          where: { id: mes.fileId },
-        });
-        if (!file) throw new NotFoundException('File not found');
-      }
+      // let file: any;
+      // if (mes.fileId) {
+      //   file = await this.prisma.file.findFirst({
+      //     where: { id: mes.fileId },
+      //   });
+      //   if (!file) throw new NotFoundException('File not found');
+      // }
 
       if (mes.type === MessageTypeEnum.Text && mes.content === '') {
         continue;
@@ -253,7 +253,16 @@ export class ChatService {
           });
         }
 
-        let message = [];
+        let message: any = [
+          {
+            authorId: operator.id,
+            chatId: chat.id,
+            id: objectId(),
+            content: 'Accept Operator',
+            type: MessageTypeEnum.AcceptOperator,
+            acceptDoctorId: operator?.doctorId,
+          },
+        ];
 
         for (const mes of dto.messages) {
           let file: any;
@@ -305,6 +314,19 @@ export class ChatService {
 
         // await this.botService.sendShowButton(operator, chat.client, chat.id, chat.topic.name);
 
+        const existDoctorWithQuery: any = await existDoctorInfo(this.prisma, operator?.doctorId);
+
+        if (!existDoctorWithQuery) {
+          throw new NotFoundException('Doctor not found');
+        }
+
+        const sendMessage = {
+          ...operator,
+          specialties: existDoctorWithQuery?.specialties || null,
+        };
+
+        this.socket.sendMessageToAcceptOperator(chat?.consultationId, sendMessage);
+
         await this.botService.sendReceiveConversationButton(
           [operator],
           chat.client,
@@ -327,7 +349,7 @@ export class ChatService {
     });
   }
 
-  async pay(id: string, payload: PayTransactionDto, user: IUser) {
+  async payStartChatWithOperator(id: string, payload: PayTransactionDto, user: IUser) {
     const { paymentProvider, amount, transactionId } = payload;
 
     const transaction = await this.prisma.transactions.findFirst({

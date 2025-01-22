@@ -79,7 +79,7 @@ export class BotService {
         blockedAt: null,
         approvedAt: { not: null },
         shiftStatus: 'active',
-        // operatorChats: { none: { status: 'active' } },
+        operatorChats: { none: { status: 'active' } },
       },
       include: { rejectedChats: true },
     });
@@ -194,8 +194,20 @@ export class BotService {
       },
     });
 
+    const existDoctorWithQuery: any = await existDoctorInfo(this.prisma, operator?.doctorId);
+
+    if (!existDoctorWithQuery) {
+      throw new NotFoundException('Doctor not found');
+    }
+
     await this.sendReceiveConversationButton([operator], getClient, chat.id, chat.topic.name);
 
+    const sendMessage = {
+      ...operator,
+      specialties: existDoctorWithQuery?.specialties || null,
+    };
+
+    await this.socketGateWay.sendMessageToAcceptOperator(chat?.consultationId, sendMessage);
     return { success: true };
   }
 
@@ -397,7 +409,7 @@ export class BotService {
         `,
       {
         reply_markup: {
-          inline_keyboard: [[{ text: 'Receive', callback_data: `receive$${chatId}` }]],
+          inline_keyboard: [[{ text: 'Show client messages', callback_data: `receive$${chatId}` }]],
           one_time_keyboard: true,
         },
         parse_mode: 'MarkdownV2',
@@ -413,7 +425,7 @@ export class BotService {
       {
         reply_markup: {
           inline_keyboard: [
-            [{ text: 'Receive', callback_data: `receive$${chatId}` }],
+            [{ text: 'Show client messages', callback_data: `receive$${chatId}` }],
             // [{ text: 'Reject', callback_data: `reject$${chatId}` }],
           ],
           one_time_keyboard: true,
@@ -519,8 +531,6 @@ export class BotService {
       return ctx.reply('You have no right');
     }
 
-    const existDoctorWithQuery: any = await existDoctorInfo(this.prisma, operator?.doctorId);
-
     const chat = await this.prisma.chat.findFirst({
       where: {
         id: chatId,
@@ -597,12 +607,12 @@ export class BotService {
         await ctx.reply(formattedMessage, { parse_mode: 'MarkdownV2' });
       }
 
-      const sendMessage = {
-        ...operator,
-        specialties: existDoctorWithQuery?.specialties || null,
-      };
+      // const sendMessage = {
+      //   ...operator,
+      //   specialties: existDoctorWithQuery?.specialties || null,
+      // };
 
-      return this.socketGateWay.sendMessageToAcceptOperator(chat?.consultationId, sendMessage);
+      // return this.socketGateWay.sendMessageToAcceptOperator(chat?.consultationId, sendMessage);
     });
   }
 
@@ -857,27 +867,6 @@ export class BotService {
 
     if (!operator) return;
 
-    const existBooking = await this.checkOperatorBookingTime(operator);
-
-    if (existBooking) {
-      return ctx.reply(`You have a booking at ${existBooking.start_time}. Please be prepared.`, {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              // {
-              //   text: 'View Booking Details',
-              //   callback_data: `view_booking$${existBooking.booking_id}`,
-              // },
-              {
-                text: "I'm Ready",
-                callback_data: `get_booking$${existBooking.booking_id}`,
-              },
-            ],
-          ],
-        },
-      });
-    }
-
     const chat = await this.prisma.chat.findFirst({
       where: {
         operatorId: operator.id,
@@ -906,6 +895,19 @@ export class BotService {
       },
     });
 
+    const existDoctorWithQuery: any = await existDoctorInfo(this.prisma, operator?.doctorId);
+
+    if (!existDoctorWithQuery) {
+      throw new NotFoundException('Doctor not found');
+    }
+
+    const sendMessage = {
+      ...operator,
+      specialties: existDoctorWithQuery?.specialties || null,
+    };
+
+    await this.socketGateWay.sendMessageToAcceptOperator(chat?.consultationId, sendMessage);
+
     return this.prisma.$transaction(async (trx) => {
       await trx.chat.update({
         where: { id: chat.id },
@@ -924,7 +926,6 @@ export class BotService {
       });
 
       this.socketGateWay.sendStopActionToClientViaSocket(chat?.consultationId, data);
-
       const text = `Dialog with *${chat?.client?.firstname} ${chat?.client?.lastname}* stopped`;
 
       await ctx.reply(text, { parse_mode: 'MarkdownV2' });
@@ -957,6 +958,29 @@ export class BotService {
         });
       }
       if (order?.id) {
+        const existBooking = await this.checkOperatorBookingTime(operator);
+
+        if (existBooking) {
+          return ctx.reply(
+            `You have a booking at ${existBooking.start_time}. Please be prepared.`,
+            {
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    // {
+                    //   text: 'View Booking Details',
+                    //   callback_data: `view_booking$${existBooking.booking_id}`,
+                    // },
+                    {
+                      text: "I'm Ready",
+                      callback_data: `get_booking$${existBooking.booking_id}`,
+                    },
+                  ],
+                ],
+              },
+            },
+          );
+        }
         await this.takeNextClient(ctx, operator, order, trx);
       } else {
         await trx.user.update({
@@ -989,7 +1013,7 @@ export class BotService {
     });
     return await ctx.editMessageReplyMarkup({
       reply_markup: {
-        inline_keyboard: [[{ text: 'Receive', callback_data: `receive$${chatId}` }]],
+        inline_keyboard: [[{ text: 'Show client messages', callback_data: `receive$${chatId}` }]],
       },
     });
   }
