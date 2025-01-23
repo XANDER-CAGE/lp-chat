@@ -594,7 +594,7 @@ export class ChatService {
     return { activeChat, messages, success: true };
   }
 
-  async getMessagesByChatId(dto: GetMessagesByChatIdDto, { id: userId }: IUser) {
+  async getMessagesByChatId(dto: GetMessagesByChatIdDto) {
     const existConsultation = await this.prisma.consultation.findFirst({
       where: {
         id: dto?.consultationId,
@@ -603,6 +603,16 @@ export class ChatService {
 
     if (!existConsultation || !existConsultation?.chatId) {
       throw new NotFoundException('ChatId not found');
+    }
+
+    const getClient = await this.prisma.user.findFirst({
+      where: {
+        userId: existConsultation.userId,
+      },
+    });
+
+    if (!getClient) {
+      throw new NotFoundException('Consultation user not found');
     }
 
     const activeChat = await this.prisma.chat.findMany({
@@ -620,10 +630,10 @@ export class ChatService {
         isDeleted: false,
         OR: [
           {
-            clientId: userId,
+            clientId: getClient.id,
           },
           {
-            operatorId: userId,
+            operatorId: existConsultation.operatorId,
           },
         ],
       },
@@ -678,8 +688,8 @@ export class ChatService {
     // });
 
     const messages = await messagesQuery(this.prisma, {
-      clientId: userId,
-      operatorId: userId,
+      clientId: getClient.id,
+      operatorId: existConsultation.operatorId,
       consultationId: dto.consultationId,
     });
 
