@@ -6,6 +6,7 @@ export enum MessageTypeEnum {
   AudioCall = 'audio_call',
   Payment = 'payment',
   Rate = 'rate',
+  RecommendDoctor = 'recommendDoctor',
   AcceptOperator = 'acceptOperator',
   Document = 'document',
 }

@@ -26,7 +26,7 @@ import { AuthGuard } from 'src/common/guard/auth.guard';
 import { findOperatorsCronId } from '../../common/var/index.var';
 import { Cron } from '@nestjs/schedule';
 import { env } from '../../common/config/env.config';
-import { CreateChatDto } from './dto/chat.dto';
+import { CreateChatDto, StopConsultationAndChatDto } from './dto/chat.dto';
 import { BotHttpService } from '../bot/bot-http.service';
 
 @ApiTags('Chat')
@@ -127,8 +127,11 @@ export class ChatController {
     summary: 'Stop current chat and start new chat in queue',
   })
   @Post('stop-and-start-new-chat')
-  async stopCurrentChatAndStartNewChatInQueue(@User() user: IUser) {
-    const data = await this.botHttpService.stopDialogAndTakeNextQueueInHTTP(user);
+  async stopCurrentChatAndStartNewChatInQueue(
+    @Body() dto: StopConsultationAndChatDto,
+    @User() user: IUser,
+  ) {
+    const data = await this.botHttpService.stopDialogAndTakeNextQueueInHTTP(dto, user);
     return CoreApiResponse.success(data);
   }
 }

@@ -3,11 +3,13 @@ import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/commo
 import { Bot, Context } from 'grammy';
 import { PrismaService } from '../prisma/prisma.service';
 import { SocketGateway } from '../chat/socket.gateway';
-import { ConsultationStatus } from '../chat/enum';
+import { ConsultationStatus, MessageTypeEnum } from '../chat/enum';
 import { existDoctorInfo } from '../prisma/query';
 import { ChatService } from '../chat/chat.service';
 import { BotService } from './bot.service';
 import { IUser } from 'src/common/interface/my-req.interface';
+import { StopConsultationAndChatDto } from '../chat/dto/chat.dto';
+import { objectId } from 'src/common/util/formate-message.util';
 
 @Injectable()
 export class BotHttpService {
@@ -106,7 +108,7 @@ export class BotHttpService {
     );
   }
 
-  async stopDialogAndTakeNextQueueInHTTP(user: IUser) {
+  async stopDialogAndTakeNextQueueInHTTP(dto: StopConsultationAndChatDto, user: IUser) {
     const operator = await this.prisma.user.findFirst({
       where: {
         telegramId: { not: null },
@@ -170,12 +172,25 @@ export class BotHttpService {
         },
       });
 
+      // This logic last message this is doctor recommend
+      const message = await trx.message.create({
+        data: {
+          id: objectId(),
+          authorId: user.id,
+          chatId: recentChat.id,
+          content: dto.content,
+          fileId: dto.fileId,
+          type: MessageTypeEnum.RecommendDoctor,
+        },
+        include: { chat: true },
+      });
+      await this.botService.messageViaBot(message.id);
       this.socketGateWay.sendStopActionToClientViaSocket(recentChat?.consultationId, data);
 
       const text = `Dialog with *${recentChat?.client?.firstname} ${recentChat?.client?.lastname}* stopped`;
-
       await this.bot.api.sendMessage(operatorTelegramId, text, { parse_mode: 'MarkdownV2' });
 
+      // This logic get next order client
       const nextOrderClient = await this.prisma.consultationOrder.findFirst({
         where: { status: 'waiting', operatorId: null },
         orderBy: { order: 'desc' },
