@@ -2,8 +2,6 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateChatDto } from './dto/chat.dto';
 import { BotService } from '../bot/bot.service';
-import { SchedulerRegistry } from '@nestjs/schedule';
-import { findOperatorsCronId } from 'src/common/var/index.var';
 import {
   CreateDraftMessageDto,
   CreateMessageDto,
@@ -25,7 +23,6 @@ export class ChatService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly botService: BotService,
-    private schedulerRegistry: SchedulerRegistry,
     private socket: SocketGateway,
   ) {}
 
@@ -118,7 +115,6 @@ export class ChatService {
       where: {
         id: consultation?.chatId,
         clientId: user.id,
-        status: { in: ['init'] },
         consultationId: dto.consultationId,
       },
       include: { messages: true },
@@ -328,11 +324,10 @@ export class ChatService {
         this.socket.sendMessageToAcceptOperator(chat?.consultationId, sendMessage);
 
         await this.botService.sendReceiveConversationButton(
-          [operator],
+          operator,
           chat.client,
           chat.id,
           chat.topic.name,
-          trx,
         );
 
         await this.getAllActiveOperators();
@@ -510,82 +505,6 @@ export class ChatService {
       },
       include: { chat: true },
     });
-  }
-
-  private async toStopCron() {
-    const chats = await this.prisma.chat.findMany({
-      where: {
-        status: 'init',
-        messages: {
-          some: { OR: [{ content: { not: null } }, { fileId: { not: null } }] },
-        },
-      },
-      include: { messages: true },
-    });
-    return !chats.length;
-  }
-
-  async findOperatorsCron() {
-    const operators = await this.prisma.user.findMany({
-      where: {
-        blockedAt: null,
-        approvedAt: { not: null },
-        telegramId: { not: null },
-        shiftStatus: 'active',
-        operatorChats: { none: { status: 'active' } },
-      },
-      include: { rejectedChats: true },
-    });
-
-    const chats = await this.prisma.chat.findMany({
-      where: { status: 'init', messages: { some: {} } },
-      include: { client: true, topic: true },
-    });
-
-    for (const chat of chats) {
-      await this.botService.sendReceiveConversationButton(
-        operators,
-        chat.client,
-        chat.id,
-        chat.topic.name,
-      );
-    }
-    const toStopCron = await this.toStopCron();
-    if (toStopCron) {
-      const job = this.schedulerRegistry.getCronJob(findOperatorsCronId);
-      job.stop();
-    }
-  }
-
-  async findOperatorsAndSendToClient(operatorId: string, chatId: string) {
-    const operators = await this.prisma.user.findMany({
-      where: {
-        id: operatorId,
-        blockedAt: null,
-        approvedAt: { not: null },
-        telegramId: { not: null },
-        shiftStatus: 'active',
-        operatorChats: { none: { status: 'active' } },
-      },
-      include: { rejectedChats: true },
-    });
-
-    const chats = await this.prisma.chat.findMany({
-      where: { id: chatId, status: 'init', messages: { some: {} } },
-      include: { client: true, topic: true },
-    });
-
-    for (const chat of chats) {
-      await this.botService.sendReceiveConversationButton(
-        operators,
-        chat.client,
-        chat.id,
-        chat.topic.name,
-      );
-    }
-    return {
-      success: true,
-    };
   }
 
   async chatCreate(dto: CreateChatDto, user: IUser, trx = null) {
