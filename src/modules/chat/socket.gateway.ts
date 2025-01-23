@@ -96,8 +96,12 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     console.log(`Socket disconnected: ${socket.id}`);
   }
 
-  sendMessageViaSocket(consultationId: string, message: any) {
-    this.server.to(consultationId).emit('chat', CoreApiResponse.success(message));
+  sendMessageByOperatorViaSocket(consultationId: string, message: any) {
+    this.server.to(consultationId).emit('sendMessageByOperator', CoreApiResponse.success(message));
+  }
+
+  sendMessageByClientViaSocket(consultationId: string, message: any) {
+    this.server.to(consultationId).emit('sendMessageByClient', CoreApiResponse.success(message));
   }
 
   sendMessageToAcceptOperator(consultationId: string, message: any) {
@@ -157,8 +161,6 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       throw new BadRequestException(response.message);
     }
 
-    return this.server
-      .to(client.consultationId)
-      .emit('acceptMyMessage', CoreApiResponse.success(response.data));
+    return this.sendMessageByClientViaSocket(client.consultationId, response.data);
   }
 }

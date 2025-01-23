@@ -319,6 +319,7 @@ export class ChatService {
         const sendMessage = {
           ...operator,
           specialties: existDoctorWithQuery?.specialties || null,
+          sip: existDoctorWithQuery?.sip,
         };
 
         this.socket.sendMessageToAcceptOperator(chat?.consultationId, sendMessage);

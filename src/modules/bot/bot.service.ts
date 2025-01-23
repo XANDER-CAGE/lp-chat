@@ -210,6 +210,7 @@ export class BotService {
     const sendMessage = {
       ...operator,
       specialties: existDoctorWithQuery?.specialties || null,
+      sip: existDoctorWithQuery?.sip,
     };
 
     return this.socketGateWay.sendMessageToAcceptOperator(nextOrderConsultation.id, sendMessage);
@@ -284,6 +285,7 @@ export class BotService {
     const sendMessage = {
       ...operator,
       specialties: existDoctorWithQuery?.specialties || null,
+      sip: existDoctorWithQuery?.sip,
     };
 
     this.socketGateWay.sendMessageToAcceptOperator(chat?.consultationId, sendMessage);
@@ -708,7 +710,9 @@ export class BotService {
       },
     });
 
-    this.socketGateWay.sendMessageViaSocket(activeChat?.consultationId.toString(), message);
+    console.log('keldi', consultation.id);
+
+    return this.socketGateWay.sendMessageByOperatorViaSocket(consultation?.id, message);
   }
 
   async fileToAPI(ctx: Context): Promise<{ fileId: string; caption: string; mimetype: string }> {
@@ -1165,6 +1169,7 @@ export class BotService {
     const sendMessage = {
       ...operator,
       specialties: existDoctorWithQuery?.specialties || null,
+      sip: existDoctorWithQuery?.sip,
     };
 
     await this.socketGateWay.sendMessageToAcceptOperator(chat?.consultationId, sendMessage);

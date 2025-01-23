@@ -93,6 +93,7 @@ export class BotHttpService {
     const sendMessage = {
       ...operator,
       specialties: existDoctorWithQuery?.specialties || null,
+      sip: existDoctorWithQuery?.sip,
     };
 
     this.socketGateWay.sendMessageToAcceptOperator(chat?.consultationId, sendMessage);
