@@ -1,0 +1,244 @@
+import { InjectBot } from '@grammyjs/nestjs';
+import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Bot, Context } from 'grammy';
+import { PrismaService } from '../prisma/prisma.service';
+import { SocketGateway } from '../chat/socket.gateway';
+import { ConsultationStatus } from '../chat/enum';
+import { existDoctorInfo } from '../prisma/query';
+import { ChatService } from '../chat/chat.service';
+import { BotService } from './bot.service';
+import { IUser } from 'src/common/interface/my-req.interface';
+
+@Injectable()
+export class BotHttpService {
+  constructor(
+    @InjectBot() private readonly bot: Bot<Context>,
+    private readonly prisma: PrismaService,
+    private readonly socketGateWay: SocketGateway,
+    private readonly botService: BotService,
+
+    @Inject(forwardRef(() => ChatService))
+    private chatService: ChatService,
+  ) {}
+
+  async takeNextClient(operatorTelegramId: string, operator: any, order: any, trx: any) {
+    const consultation = await this.prisma.consultation.findFirst({
+      where: {
+        id: order.consultationId,
+        chatId: { not: null },
+        status: ConsultationStatus.NEW,
+      },
+    });
+
+    if (!consultation) {
+      return this.bot.api.sendMessage(
+        operatorTelegramId,
+        'Consultation data is missing or invalid.',
+      );
+    }
+
+    const getClient = await this.prisma.user.findFirst({
+      where: { userId: consultation.userId, isDeleted: false, doctorId: null },
+    });
+
+    if (!getClient) {
+      return this.bot.api.sendMessage(operatorTelegramId, 'Queue user not found');
+    }
+
+    // Update next chat status
+    const chat = await trx.chat.update({
+      where: {
+        id: consultation.chatId,
+      },
+      data: {
+        operatorId: operator.id,
+        status: 'active',
+      },
+    });
+
+    if (!chat) {
+      return this.bot.api.sendMessage(operatorTelegramId, 'Chat data is missing or invalid.');
+    }
+
+    // Update next consultation status
+    await trx.consultation.update({
+      where: { id: consultation.id },
+      data: {
+        // update consultation
+        chatId: chat.id,
+        status: ConsultationStatus.IN_PROGRESS,
+        operatorId: operator.id,
+        chatStartedAt: new Date(),
+      },
+    });
+
+    // Update next consultation order status
+    await trx.consultationOrder.update({
+      where: {
+        id: order.id,
+      },
+      data: {
+        operatorId: operator.id,
+        status: 'active',
+      },
+    });
+
+    // Send message waiting client
+    const existDoctorWithQuery: any = await existDoctorInfo(trx, operator?.doctorId);
+
+    if (!existDoctorWithQuery) {
+      throw new NotFoundException('Doctor not found');
+    }
+
+    const sendMessage = {
+      ...operator,
+      specialties: existDoctorWithQuery?.specialties || null,
+    };
+
+    this.socketGateWay.sendMessageToAcceptOperator(chat?.consultationId, sendMessage);
+
+    return this.botService.sendReceiveConversationButton(
+      operator,
+      getClient,
+      chat.id,
+      chat?.topic?.name,
+    );
+  }
+
+  async stopDialogAndTakeNextQueueInHTTP(user: IUser) {
+    const operator = await this.prisma.user.findFirst({
+      where: {
+        telegramId: { not: null },
+        approvedAt: { not: null },
+        doctorId: user.doctorId,
+        // shiftStatus: 'inactive',
+      },
+    });
+
+    if (!operator) {
+      throw new NotFoundException('Not found operator with telegramId');
+    }
+
+    const operatorTelegramId = operator.telegramId;
+
+    const recentChat = await this.prisma.chat.findFirst({
+      where: {
+        operatorId: operator.id,
+        status: 'active',
+        consultationId: { not: null },
+      },
+      include: { client: true },
+    });
+
+    if (!recentChat?.consultationId) {
+      return this.bot.api.sendMessage(operatorTelegramId, 'No active chats');
+    }
+
+    const recentConsultationOrder = await this.prisma.consultationOrder.findFirst({
+      where: {
+        consultationId: recentChat?.consultationId,
+        status: 'active',
+      },
+    });
+
+    const recentConsultationBooking = await this.prisma.consultationBooking.findFirst({
+      where: {
+        consultationId: recentChat.consultationId,
+        status: 'active',
+      },
+    });
+
+    // Return all socket client information about active operators
+    await this.chatService.getAllActiveOperators();
+
+    return this.prisma.$transaction(async (trx) => {
+      // Recent chat status done
+      await trx.chat.update({
+        where: { id: recentChat.id },
+        data: { status: 'done' },
+      });
+
+      // Recent chat consultation status finished
+      const data = await trx.consultation.update({
+        where: {
+          id: recentChat?.consultationId,
+        },
+        data: {
+          status: ConsultationStatus.FINISHED,
+          chatId: recentChat?.id,
+        },
+      });
+
+      this.socketGateWay.sendStopActionToClientViaSocket(recentChat?.consultationId, data);
+
+      const text = `Dialog with *${recentChat?.client?.firstname} ${recentChat?.client?.lastname}* stopped`;
+
+      await this.bot.api.sendMessage(operatorTelegramId, text, { parse_mode: 'MarkdownV2' });
+
+      const nextOrderClient = await this.prisma.consultationOrder.findFirst({
+        where: { status: 'waiting', operatorId: null },
+        orderBy: { order: 'desc' },
+        select: { id: true, consultationId: true },
+      });
+
+      if (recentConsultationOrder?.id) {
+        // Recent active consultation finished
+        await trx.consultationOrder.update({
+          where: {
+            id: recentConsultationOrder?.id,
+          },
+          data: {
+            status: 'done',
+          },
+        });
+      }
+
+      if (recentConsultationBooking?.id) {
+        // Recent active consultation booking finished
+        await trx.consultationBooking.update({
+          where: {
+            id: recentConsultationBooking?.id,
+          },
+          data: {
+            status: 'done',
+          },
+        });
+      }
+
+      if (nextOrderClient?.id) {
+        const existBooking = await this.botService.checkOperatorBookingTime(operator);
+
+        if (existBooking) {
+          await this.bot.api.sendMessage(
+            operatorTelegramId,
+            `You have a booking at ${existBooking.start_time}. Please be prepared.`,
+            {
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    {
+                      text: "I'm Ready",
+                      callback_data: `get_booking$${existBooking.booking_id}`,
+                    },
+                  ],
+                ],
+              },
+            },
+          );
+        } else {
+          await this.takeNextClient(operatorTelegramId, operator, nextOrderClient, trx);
+        }
+      } else {
+        // If not have client in queue update operator status
+        await trx.user.update({
+          where: { id: operator?.id },
+          data: {
+            shiftStatus: 'active',
+          },
+        });
+      }
+
+      return this.socketGateWay.disconnectChatMembers(recentChat?.consultationId);
+    });
+  }
+}

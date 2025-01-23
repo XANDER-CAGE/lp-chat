@@ -23,7 +23,6 @@ export class BotService {
     private readonly prisma: PrismaService,
     private readonly fileService: FileService,
     private readonly socketGateWay: SocketGateway,
-
     @Inject(forwardRef(() => ChatService))
     private chatService: ChatService,
   ) {}
