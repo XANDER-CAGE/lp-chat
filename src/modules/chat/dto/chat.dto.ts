@@ -28,6 +28,7 @@ export class StopConsultationAndChatDto {
     description: 'File ID',
   })
   @IsString()
+  @IsOptional()
   fileId?: string;
 
   @ApiPropertyOptional({

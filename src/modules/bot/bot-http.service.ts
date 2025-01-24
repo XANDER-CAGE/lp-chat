@@ -172,19 +172,22 @@ export class BotHttpService {
         },
       });
 
-      // This logic last message this is doctor recommend
-      const message = await trx.message.create({
-        data: {
-          id: objectId(),
-          authorId: user.id,
-          chatId: recentChat.id,
-          content: dto.content,
-          fileId: dto.fileId,
-          type: MessageTypeEnum.RecommendDoctor,
-        },
-        include: { chat: true },
-      });
-      await this.botService.messageViaBot(message.id);
+      if (dto.fileId || dto.content) {
+        // This logic last message this is doctor recommend
+        const message = await trx.message.create({
+          data: {
+            id: objectId(),
+            authorId: user.id,
+            chatId: recentChat.id,
+            content: dto.content,
+            fileId: dto.fileId,
+            type: MessageTypeEnum.RecommendDoctor,
+          },
+          include: { chat: true },
+        });
+        await this.botService.messageViaBot(message.id);
+      }
+
       this.socketGateWay.sendStopActionToClientViaSocket(recentChat?.consultationId, data);
 
       const text = `Dialog with *${recentChat?.client?.firstname} ${recentChat?.client?.lastname}* stopped`;
