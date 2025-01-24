@@ -68,7 +68,7 @@ export class BotService {
     });
 
     if (chat) {
-      return ctx.reply('You do not have an active chat to end.');
+      return ctx.reply('You have active chat');
     }
 
     if (operator.shiftStatus == 'active') {
