@@ -185,7 +185,8 @@ export class BotHttpService {
           },
           include: { chat: true },
         });
-        await this.botService.messageViaBot(message.id);
+
+        await this.botService.messageViaBot(message.id, trx);
       }
 
       this.socketGateWay.sendStopActionToClientViaSocket(recentChat?.consultationId, data);

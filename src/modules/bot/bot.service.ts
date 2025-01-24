@@ -874,8 +874,9 @@ export class BotService {
     // await this.fileService.deleteFromStatic(pathToStatic + filename);
   }
 
-  async messageViaBot(messageId: string) {
-    const message = await this.prisma.message.findFirst({
+  async messageViaBot(messageId: string, trx = null) {
+    trx = trx || this.prisma;
+    const message = await trx.message.findFirst({
       where: {
         id: messageId,
       },
@@ -911,7 +912,7 @@ export class BotService {
       parse_mode: 'MarkdownV2',
       reply_parameters: replyParameters,
     });
-    await this.prisma.message.update({
+    await trx.message.update({
       where: { id: message.id },
       data: { tgMsgId: messageFromTg.message_id.toString() },
     });
