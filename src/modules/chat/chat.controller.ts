@@ -131,7 +131,7 @@ export class ChatController {
     @Body() dto: StopConsultationAndChatDto,
     @User() user: IUser,
   ) {
-    const data = await this.botHttpService.stopDialogAndTakeNextQueueInHTTP(dto, user);
+    const data = await this.botHttpService.stopDialogHttp(dto, user);
     return CoreApiResponse.success(data);
   }
 }

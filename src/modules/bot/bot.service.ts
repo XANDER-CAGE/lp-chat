@@ -182,13 +182,17 @@ export class BotService {
         telegramId: ctx.from.id.toString(),
         blockedAt: null,
         approvedAt: { not: null },
-        operatorChats: { none: { status: 'active' } },
+        // operatorChats: { none: { status: 'active' } },
       },
       include: { rejectedChats: true },
     });
 
     if (!operator?.id) {
       return ctx.reply('Please /register and(or) wait for the administrator to approve');
+    }
+
+    if (operator.shiftStatus !== shiftStatus.active) {
+      return ctx.reply('You are not active. Please activate your status first.');
     }
 
     const existBooking = await this.checkOperatorBookingTime(operator);

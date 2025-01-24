@@ -108,7 +108,7 @@ export class BotHttpService {
     );
   }
 
-  async stopDialogAndTakeNextQueueInHTTP(dto: StopConsultationAndChatDto, user: IUser) {
+  async stopDialogHttp(dto: StopConsultationAndChatDto, user: IUser) {
     const operator = await this.prisma.user.findFirst({
       where: {
         telegramId: { not: null },
@@ -254,7 +254,7 @@ export class BotHttpService {
       await trx.user.update({
         where: { id: operator?.id },
         data: {
-          shiftStatus: 'inactive',
+          shiftStatus: 'active',
         },
       });
       // }
