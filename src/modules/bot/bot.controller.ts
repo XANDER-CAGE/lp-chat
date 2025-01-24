@@ -108,7 +108,7 @@ export class BotController {
     } else if (callback == 'get_booking') {
       return this.botService.callbackGetBookingButton(ctx, data);
     } else if (callback == 'take_next_client') {
-      return this.botService.takeNextClient(ctx, data);
+      return this.botService.takeNextClient(ctx);
     }
   }
 }

@@ -310,7 +310,7 @@ export class BotService {
     return this.socketGateWay.sendMessageToAcceptOperator(nextOrderConsultation.id, sendMessage);
   }
 
-  async takeNextClient(ctx: Context, trx: any) {
+  async takeNextClient(ctx: Context, trx = null) {
     trx = trx || this.prisma;
     const operator = await this.prisma.user.findFirst({
       where: {
