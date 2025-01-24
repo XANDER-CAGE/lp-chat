@@ -31,7 +31,7 @@ export class BotService {
     const commands = [
       { command: 'start', description: 'Start the bot 🚀' },
       { command: 'launch', description: "I\'m ready to get a new client. ✅" },
-      { command: 'stopdialog', description: 'Stop talking to Client 🛑' },
+      // { command: 'stopdialog', description: 'Stop talking to Client 🛑' },
       { command: 'queue', description: 'Connecting to a client in the queue 🚶‍♂️🚶‍♀️🚶‍♂️🚶‍♀️🚶‍♂️' },
       { command: 'getbooking', description: 'Get your booking details 📅' },
     ];

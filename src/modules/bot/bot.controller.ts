@@ -49,10 +49,10 @@ export class BotController {
     await this.botService.register(ctx);
   }
 
-  @Command('stopdialog')
-  async stopDialog(@Ctx() ctx: Context) {
-    await this.botService.stopDialogAndTakeNextQueue(ctx);
-  }
+  // @Command('stopdialog')
+  // async stopDialog(@Ctx() ctx: Context) {
+  //   await this.botService.stopDialogAndTakeNextQueue(ctx);
+  // }
 
   @Command('getbooking')
   async commandGetBooking(@Ctx() ctx: Context) {

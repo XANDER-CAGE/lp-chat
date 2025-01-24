@@ -194,11 +194,11 @@ export class BotHttpService {
       await this.bot.api.sendMessage(operatorTelegramId, text, { parse_mode: 'MarkdownV2' });
 
       // This logic get next order client
-      const nextOrderClient = await this.prisma.consultationOrder.findFirst({
-        where: { status: 'waiting', operatorId: null },
-        orderBy: { order: 'asc' },
-        select: { id: true, consultationId: true },
-      });
+      // const nextOrderClient = await this.prisma.consultationOrder.findFirst({
+      //   where: { status: 'waiting', operatorId: null },
+      //   orderBy: { order: 'asc' },
+      //   select: { id: true, consultationId: true },
+      // });
 
       if (recentConsultationOrder?.id) {
         // Recent active consultation finished
@@ -224,38 +224,40 @@ export class BotHttpService {
         });
       }
 
-      if (nextOrderClient?.id) {
-        const existBooking = await this.botService.checkOperatorBookingTime(operator);
+      // if (nextOrderClient?.id) {
+      //   const existBooking = await this.botService.checkOperatorBookingTime(operator);
 
-        if (existBooking) {
-          await this.bot.api.sendMessage(
-            operatorTelegramId,
-            `You have a booking at ${existBooking.start_time}. Please be prepared.`,
-            {
-              reply_markup: {
-                inline_keyboard: [
-                  [
-                    {
-                      text: "I'm Ready",
-                      callback_data: `get_booking$${existBooking.booking_id}`,
-                    },
-                  ],
-                ],
-              },
-            },
-          );
-        } else {
-          await this.takeNextClient(operatorTelegramId, operator, nextOrderClient, trx);
-        }
-      } else {
-        // If not have client in queue update operator status
-        await trx.user.update({
-          where: { id: operator?.id },
-          data: {
-            shiftStatus: 'active',
-          },
-        });
-      }
+      //   if (existBooking) {
+      //     await this.bot.api.sendMessage(
+      //       operatorTelegramId,
+      //       `You have a booking at ${existBooking.start_time}. Please be prepared.`,
+      //       {
+      //         reply_markup: {
+      //           inline_keyboard: [
+      //             [
+      //               {
+      //                 text: "I'm Ready",
+      //                 callback_data: `get_booking$${existBooking.booking_id}`,
+      //               },
+      //             ],
+      //           ],
+      //         },
+      //       },
+      //     );
+      //   } else {
+      //     await this.takeNextClient(operatorTelegramId, operator, nextOrderClient, trx);
+      //   }
+      // }
+      // else {
+
+      // If not have client in queue update operator status
+      await trx.user.update({
+        where: { id: operator?.id },
+        data: {
+          shiftStatus: 'inactive',
+        },
+      });
+      // }
 
       return this.socketGateWay.disconnectChatMembers(recentChat?.consultationId);
     });
