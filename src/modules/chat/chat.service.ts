@@ -93,6 +93,7 @@ export class ChatService {
       }
 
       await this.botService.messageViaBot(message.id);
+      await this.socket.sendMessageByClientViaSocket(dto.consultationId, mes);
     }
 
     return {

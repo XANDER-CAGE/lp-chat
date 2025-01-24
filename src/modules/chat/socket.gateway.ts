@@ -155,12 +155,6 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       throw new BadRequestException('Can not send message');
     }
 
-    const response = await this.chatService.message(data, client.user);
-
-    if (!response.success) {
-      throw new BadRequestException(response.message);
-    }
-
-    return this.sendMessageByClientViaSocket(client.consultationId, response.data);
+    return this.chatService.message(data, client.user);
   }
 }
