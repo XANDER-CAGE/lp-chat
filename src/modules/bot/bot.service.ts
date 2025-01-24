@@ -2,7 +2,7 @@ import { InjectBot } from '@grammyjs/nestjs';
 import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Bot, Context, InputFile, Keyboard } from 'grammy';
 import { PrismaService } from '../prisma/prisma.service';
-import { file, user } from '@prisma/client';
+import { file, shiftStatus, user } from '@prisma/client';
 import { FileService } from '../file/file.service';
 import { extname } from 'path';
 import { getFileUrl } from 'src/common/util/get-tg-file-url.util';
@@ -30,9 +30,9 @@ export class BotService {
   async onStart(ctx: Context): Promise<void> {
     const commands = [
       { command: 'start', description: 'Start the bot 🚀' },
-      { command: 'launch', description: "I\'m ready to get a new client. ✅" },
-      // { command: 'stopdialog', description: 'Stop talking to Client 🛑' },
-      { command: 'queue', description: 'Connecting to a client in the queue 🚶‍♂️🚶‍♀️🚶‍♂️🚶‍♀️🚶‍♂️' },
+      { command: 'online', description: "I'm ready to get a new client ✅" },
+      { command: 'offline', description: "I'm not available for new clients ❌" },
+      { command: 'queue', description: 'Connecting to a client in the queue 🚶‍♂️🚶‍♀️' },
       { command: 'getbooking', description: 'Get your booking details 📅' },
     ];
     await this.bot.api.setMyCommands(commands);
@@ -40,8 +40,8 @@ export class BotService {
       reply_markup: {
         inline_keyboard: [
           [{ callback_data: 'register', text: 'Register' }],
-          [{ callback_data: 'launch', text: 'Launch' }],
-          [{ callback_data: 'stop', text: 'End' }],
+          [{ callback_data: 'online', text: 'Online' }],
+          [{ callback_data: 'offline', text: 'Offline' }],
         ],
       },
     });
@@ -68,7 +68,7 @@ export class BotService {
     });
 
     if (chat) {
-      return ctx.reply('You already have an active chat. First stop it');
+      return ctx.reply('You do not have an active chat to end.');
     }
 
     if (operator.shiftStatus == 'active') {
@@ -87,7 +87,93 @@ export class BotService {
 
     this.chatService.getAllActiveOperators();
 
+    const getNotAssignBookingClient = await this.prisma.consultationBooking.findFirst({
+      where: {
+        operatorId: { not: null },
+        status: 'new',
+      },
+      orderBy: {
+        startTime: 'asc',
+      },
+    });
+
+    if (getNotAssignBookingClient?.id) {
+      await this.prisma.consultationBooking.update({
+        where: { id: getNotAssignBookingClient.id },
+        data: {
+          operatorId: operator.id,
+        },
+      });
+      const existBooking = await this.checkOperatorBookingTime(operator);
+
+      if (existBooking) {
+        return ctx.reply(`You have a booking at ${existBooking.start_time}. Please be prepared.`, {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "I'm Ready",
+                  callback_data: `get_booking$${existBooking.booking_id}`,
+                },
+              ],
+            ],
+          },
+        });
+      }
+    }
+
     return await ctx.reply(`You've activated your status`);
+  }
+
+  async commandEnd(ctx: Context) {
+    const operator = await this.prisma.user.findFirst({
+      where: {
+        telegramId: ctx.from.id.toString(),
+        approvedAt: { not: null },
+        isDeleted: false,
+      },
+    });
+
+    if (!operator) {
+      return ctx.reply('Please /register and (or) wait administrator to approve');
+    }
+
+    const chat = await this.prisma.chat.findFirst({
+      where: {
+        operatorId: operator.id,
+        status: 'active',
+      },
+    });
+
+    if (chat) {
+      return ctx.reply(`You don't have an active chat. Can't stop it`);
+    }
+
+    await this.prisma.user.update({
+      where: { id: operator.id, isDeleted: false },
+      data: { shiftStatus: shiftStatus.inactive },
+    });
+
+    this.chatService.getAllActiveOperators();
+
+    const existBooking = await this.checkOperatorBookingTime(operator);
+
+    if (existBooking) {
+      return ctx.reply(`You have a booking at ${existBooking.start_time}. Please be prepared.`, {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: "I'm Ready",
+                callback_data: `get_booking$${existBooking.booking_id}`,
+              },
+            ],
+          ],
+        },
+      });
+    }
+
+    return await ctx.reply(`You've inactivated your status`);
   }
 
   async commandQueue(ctx: Context) {

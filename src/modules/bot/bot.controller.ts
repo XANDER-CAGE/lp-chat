@@ -14,14 +14,24 @@ export class BotController {
     await this.botService.onStart(ctx);
   }
 
-  @CallbackQuery('launch')
+  @CallbackQuery('online')
   async callbackLaunch(@Ctx() ctx: Context) {
     await this.botService.commandStart(ctx);
   }
 
-  @Command('launch')
+  @Command('online')
   async commandLaunch(@Ctx() ctx: Context) {
     await this.botService.commandStart(ctx);
+  }
+
+  @Command('offline')
+  async commandEnd(@Ctx() ctx: Context) {
+    await this.botService.commandEnd(ctx);
+  }
+
+  @CallbackQuery('offline')
+  async callbackEnd(@Ctx() ctx: Context) {
+    await this.botService.commandEnd(ctx);
   }
 
   @CallbackQuery('queue')
@@ -34,15 +44,15 @@ export class BotController {
     await this.botService.commandQueue(ctx);
   }
 
-  @Command('stop')
-  async commandStop(@Ctx() ctx: Context) {
-    await this.botService.commandStop(ctx);
-  }
+  // @Command('stop')
+  // async commandStop(@Ctx() ctx: Context) {
+  //   await this.botService.commandStop(ctx);
+  // }
 
-  @CallbackQuery('stop')
-  async callbackStop(@Ctx() ctx: Context) {
-    await this.botService.commandStop(ctx);
-  }
+  // @CallbackQuery('stop')
+  // async callbackStop(@Ctx() ctx: Context) {
+  //   await this.botService.commandStop(ctx);
+  // }
 
   @Command('register')
   async commandRegister(@Ctx() ctx: Context) {
