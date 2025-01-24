@@ -871,7 +871,7 @@ export class BotService {
       caption: content,
       parse_mode: 'MarkdownV2',
     });
-    // await this.fileService.deleteFromStatic(pathToStatic + filename);
+    await this.fileService.deleteFromStatic(pathToStatic + filename);
   }
 
   async messageViaBot(messageId: string, trx = null) {

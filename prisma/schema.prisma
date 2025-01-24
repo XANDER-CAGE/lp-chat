@@ -20,8 +20,6 @@ model file {
   message    message?
   path       String?
 
-  isDeleted Boolean @default(false) @map("is_deleted")
-
   // Timestamps
   createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
   createdBy String?   @map("created_by") @db.VarChar(24)
