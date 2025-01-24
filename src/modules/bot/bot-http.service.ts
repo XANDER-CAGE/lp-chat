@@ -193,7 +193,7 @@ export class BotHttpService {
       // This logic get next order client
       const nextOrderClient = await this.prisma.consultationOrder.findFirst({
         where: { status: 'waiting', operatorId: null },
-        orderBy: { order: 'desc' },
+        orderBy: { order: 'asc' },
         select: { id: true, consultationId: true },
       });
 

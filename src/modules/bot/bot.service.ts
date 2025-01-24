@@ -124,7 +124,7 @@ export class BotService {
 
     const nextQueueConsultation = await this.prisma.consultationOrder.findFirst({
       where: { status: 'waiting', operatorId: null },
-      orderBy: { order: 'desc' },
+      orderBy: { order: 'asc' },
       select: { id: true, consultationId: true },
     });
 
@@ -920,7 +920,7 @@ export class BotService {
 
       const nextOrderClient = await this.prisma.consultationOrder.findFirst({
         where: { status: 'waiting', operatorId: null },
-        orderBy: { order: 'desc' },
+        orderBy: { order: 'asc' },
         select: { id: true, consultationId: true },
       });
 
