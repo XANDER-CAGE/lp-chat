@@ -107,6 +107,8 @@ export class BotController {
       return this.botService.showMessageButton(ctx, data);
     } else if (callback == 'get_booking') {
       return this.botService.callbackGetBookingButton(ctx, data);
+    } else if (callback == 'take_next_client') {
+      return this.botService.takeNextClient(ctx, data);
     }
   }
 }

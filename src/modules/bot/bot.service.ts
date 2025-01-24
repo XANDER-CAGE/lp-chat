@@ -310,7 +310,33 @@ export class BotService {
     return this.socketGateWay.sendMessageToAcceptOperator(nextOrderConsultation.id, sendMessage);
   }
 
-  async takeNextClient(ctx: Context, operator: any, order: any, trx: any) {
+  async takeNextClient(ctx: Context, trx: any) {
+    trx = trx || this.prisma;
+    const operator = await this.prisma.user.findFirst({
+      where: {
+        telegramId: ctx.from.id.toString(),
+        blockedAt: null,
+        approvedAt: { not: null },
+        shiftStatus: shiftStatus.inactive,
+      },
+      include: { rejectedChats: true },
+    });
+
+    if (!operator?.id) {
+      return ctx.reply('You are not in the active status');
+    }
+
+    // This logic get next order client
+    const order = await this.prisma.consultationOrder.findFirst({
+      where: { status: 'waiting', operatorId: null },
+      orderBy: { order: 'asc' },
+      select: { id: true, consultationId: true },
+    });
+
+    if (!order) {
+      return ctx.reply('No waiting orders are available. You can change your status to active');
+    }
+
     const consultation = await this.prisma.consultation.findFirst({
       where: {
         id: order.consultationId,
@@ -1069,13 +1095,35 @@ export class BotService {
         });
       }
 
-      // If not have client in queue update operator status
-      await trx.user.update({
-        where: { id: operator?.id },
-        data: {
-          shiftStatus: 'active',
-        },
+      // This logic get next order client
+      const nextOrderClient = await this.prisma.consultationOrder.findFirst({
+        where: { status: 'waiting', operatorId: null },
+        orderBy: { order: 'asc' },
+        select: { id: true, consultationId: true },
       });
+
+      if (nextOrderClient) {
+        await ctx.reply('Have next order client', {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "I'm ready take next client",
+                  callback_data: `take_next_client$${nextOrderClient.consultationId}`,
+                },
+              ],
+            ],
+          },
+        });
+      } else {
+        // If not have client in queue update operator status
+        await trx.user.update({
+          where: { id: operator?.id },
+          data: {
+            shiftStatus: 'active',
+          },
+        });
+      }
 
       return this.socketGateWay.disconnectChatMembers(recentChat?.consultationId);
     });
