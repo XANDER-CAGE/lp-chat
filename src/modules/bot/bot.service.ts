@@ -378,6 +378,21 @@ export class BotService {
     });
 
     if (operator) {
+      await this.prisma.user.update({
+        where: {
+          id: operator.id,
+        },
+        data: {
+          firstname: exitDoc.first_name,
+          lastname: exitDoc.last_name,
+          phone: contact.phone_number,
+          telegramId: ctx.from.id.toString(),
+          username: ctx.from.username,
+          doctorId: exitDoc?.id,
+          createdBy: exitDoc.id,
+          email: exitDoc.email,
+        },
+      });
       return ctx.reply('If you want to change your phone number, please contact administration', {
         reply_markup: { remove_keyboard: true },
       });
