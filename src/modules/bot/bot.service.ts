@@ -34,6 +34,10 @@ export class BotService {
       { command: 'offline', description: "I'm not available for new clients ❌" },
       { command: 'queue', description: 'Connecting to a client in the queue 🚶‍♂️🚶‍♀️' },
       { command: 'getbooking', description: 'Get your booking details 📅' },
+      {
+        command: 'stopdialog',
+        description: 'Stop the current dialog 🛑',
+      },
     ];
     await this.bot.api.setMyCommands(commands);
     ctx.reply(`Hey, ${ctx.from.first_name}. I'm ${this.bot.botInfo.first_name}`, {
@@ -1023,12 +1027,6 @@ export class BotService {
 
       await ctx.reply(text, { parse_mode: 'MarkdownV2' });
 
-      const nextOrderClient = await this.prisma.consultationOrder.findFirst({
-        where: { status: 'waiting', operatorId: null },
-        orderBy: { order: 'asc' },
-        select: { id: true, consultationId: true },
-      });
-
       if (recentConsultationOrder?.id) {
         // Recent active consultation finished
         await trx.consultationOrder.update({
@@ -1053,34 +1051,30 @@ export class BotService {
         });
       }
 
-      if (nextOrderClient?.id) {
-        const existBooking = await this.checkOperatorBookingTime(operator);
+      const existBooking = await this.checkOperatorBookingTime(operator);
 
-        if (existBooking) {
-          ctx.reply(`You have a booking at ${existBooking.start_time}. Please be prepared.`, {
-            reply_markup: {
-              inline_keyboard: [
-                [
-                  {
-                    text: "I'm Ready",
-                    callback_data: `get_booking$${existBooking.booking_id}`,
-                  },
-                ],
+      if (existBooking) {
+        ctx.reply(`You have a booking at ${existBooking.start_time}. Please be prepared.`, {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "I'm Ready",
+                  callback_data: `get_booking$${existBooking.booking_id}`,
+                },
               ],
-            },
-          });
-        } else {
-          await this.takeNextClient(ctx, operator, nextOrderClient, trx);
-        }
-      } else {
-        // If not have client in queue update operator status
-        await trx.user.update({
-          where: { id: operator?.id },
-          data: {
-            shiftStatus: 'active',
+            ],
           },
         });
       }
+
+      // If not have client in queue update operator status
+      await trx.user.update({
+        where: { id: operator?.id },
+        data: {
+          shiftStatus: 'active',
+        },
+      });
 
       return this.socketGateWay.disconnectChatMembers(recentChat?.consultationId);
     });
