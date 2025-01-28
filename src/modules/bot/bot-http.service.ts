@@ -183,7 +183,12 @@ export class BotHttpService {
             fileId: dto.fileId,
             type: MessageTypeEnum.RecommendDoctor,
           },
-          include: { chat: true },
+          include: {
+            chat: { include: { operator: true, topic: true } },
+            file: true,
+            author: true,
+            repliedMessage: true,
+          },
         });
 
         if (message) {
