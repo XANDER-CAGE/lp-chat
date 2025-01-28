@@ -186,6 +186,10 @@ export class BotHttpService {
           include: { chat: true },
         });
 
+        if (message) {
+          this.socketGateWay.sendMessageByOperatorViaSocket(recentChat?.consultationId, message);
+        }
+
         await this.botService.messageViaBot(message.id, trx);
       }
 
