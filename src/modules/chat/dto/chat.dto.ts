@@ -37,6 +37,6 @@ export class StopConsultationAndChatDto {
   })
   @IsOptional()
   @IsString()
-  @Length(1, 255)
+  @Length(1, 5000)
   content?: string;
 }
