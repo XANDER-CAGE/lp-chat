@@ -1080,6 +1080,12 @@ export class BotService {
 
       const existBooking = await this.checkOperatorBookingTime(operator);
 
+      // This logic get next order client
+      const nextOrderClient = await this.prisma.consultationOrder.findFirst({
+        where: { status: 'waiting', operatorId: null },
+        orderBy: { order: 'asc' },
+        select: { id: true, consultationId: true },
+      });
       if (existBooking) {
         ctx.reply(`You have a booking at ${existBooking.start_time}. Please be prepared.`, {
           reply_markup: {
@@ -1093,16 +1099,7 @@ export class BotService {
             ],
           },
         });
-      }
-
-      // This logic get next order client
-      const nextOrderClient = await this.prisma.consultationOrder.findFirst({
-        where: { status: 'waiting', operatorId: null },
-        orderBy: { order: 'asc' },
-        select: { id: true, consultationId: true },
-      });
-
-      if (nextOrderClient) {
+      } else if (nextOrderClient && !existBooking) {
         await ctx.reply('Have next order client', {
           reply_markup: {
             inline_keyboard: [
@@ -1115,7 +1112,7 @@ export class BotService {
             ],
           },
         });
-      } else {
+      } else if (!nextOrderClient && !existBooking) {
         // If not have client in queue update operator status
         await trx.user.update({
           where: { id: operator?.id },
