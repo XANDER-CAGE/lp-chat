@@ -269,6 +269,7 @@ export class BotHttpService {
       });
       // }
 
+      this.socketGateWay.sendRestoreCalculateOrderTimeViaSocket({ operatorId: operator.id });
       return this.socketGateWay.disconnectChatMembers(recentChat?.consultationId);
     });
   }

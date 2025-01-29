@@ -1125,6 +1125,7 @@ export class BotService {
         });
       }
 
+      this.socketGateWay.sendRestoreCalculateOrderTimeViaSocket({ operatorId: operator.id });
       return this.socketGateWay.disconnectChatMembers(recentChat?.consultationId);
     });
   }

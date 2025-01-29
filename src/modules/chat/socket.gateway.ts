@@ -126,10 +126,15 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   sendActiveOperatorsViaSocket(message: any) {
     return this.server.emit('getActiveOperator', CoreApiResponse.success(message));
   }
+
   sendStopActionToClientViaSocket(consultationId: string, message: any) {
     return this.server
       .to(consultationId)
       .emit('stopConsultation', CoreApiResponse.success(message));
+  }
+
+  sendRestoreCalculateOrderTimeViaSocket(message: any) {
+    return this.server.emit('resetCalculateOrderTime', CoreApiResponse.success(message));
   }
 
   @SubscribeMessage('message')
