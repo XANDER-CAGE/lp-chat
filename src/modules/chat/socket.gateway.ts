@@ -73,7 +73,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
         consultationId,
       });
 
-      socket.join(consultationId);
+      this.server.in(socket.id).socketsJoin(consultationId.toString());
       console.log('join', socket.id);
     } catch (error) {
       console.error('Error in handleConnection:', error.message);
@@ -127,10 +127,12 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   sendCallIn(consultationId: string, clientId: string, roomId: string) {
-    return this.server
-      .to(consultationId)
-      .except(clientId) // Exclude the sender
-      .emit('listingCall', CoreApiResponse.success({ clientId, roomId }));
+    return (
+      this.server
+        .to(consultationId)
+        // .except(clientId) // Exclude the sender
+        .emit('listingCall', CoreApiResponse.success({ clientId, roomId }))
+    );
   }
 
   sendRestoreCalculateOrderTimeViaSocket(message: any) {
