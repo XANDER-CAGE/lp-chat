@@ -59,7 +59,6 @@ export class BotService {
         isDeleted: false,
       },
     });
-
     if (!operator) {
       return ctx.reply('Please /register and (or) wait administrator to approve');
     }
