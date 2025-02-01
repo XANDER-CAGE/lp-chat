@@ -126,13 +126,19 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       .emit('stopConsultation', CoreApiResponse.success(message));
   }
 
-  sendCallIn(consultationId: string, clientId: string, roomId: string) {
-    return (
-      this.server
-        .to(consultationId)
-        // .except(clientId) // Exclude the sender
-        .emit('listingCall', CoreApiResponse.success({ clientId, roomId }))
-    );
+  sendCallIn(
+    consultationId: string,
+    clientId: string,
+    data: {
+      roomId: string;
+      type: 'audio' | 'video';
+      event: 'calling' | 'accept' | 'decline';
+    },
+  ) {
+    return this.server
+      .to(consultationId)
+      .except(clientId) // Exclude the sender
+      .emit('listingCall', CoreApiResponse.success(data));
   }
 
   sendRestoreCalculateOrderTimeViaSocket(message: any) {
@@ -167,7 +173,13 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('call')
   async handleCallEvent(
-    @MessageBody() data: { roomId: string; consultationId: string },
+    @MessageBody()
+    data: {
+      roomId: string;
+      consultationId: string;
+      type: 'audio' | 'video';
+      event: 'calling' | 'accept' | 'decline';
+    },
     @ConnectedSocket() client: Socket | any,
   ) {
     const consultationId = data.consultationId || client?.consultationId;
@@ -200,6 +212,6 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       throw new BadRequestException('Consultation is not active');
     }
 
-    return this.sendCallIn(consultationId, client.id, data.roomId);
+    return this.sendCallIn(consultationId, client.id, data);
   }
 }
