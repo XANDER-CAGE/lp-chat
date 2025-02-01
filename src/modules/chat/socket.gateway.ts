@@ -130,7 +130,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     consultationId: string,
     clientId: string,
     data: {
-      roomId: string;
+      roomId?: string;
       type: 'audio' | 'video';
       event: 'calling' | 'accept' | 'decline';
     },
@@ -175,7 +175,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleCallEvent(
     @MessageBody()
     data: {
-      roomId: string;
+      roomId?: string;
       consultationId: string;
       type: 'audio' | 'video';
       event: 'calling' | 'accept' | 'decline';
@@ -191,12 +191,12 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return client.disconnect();
     }
 
-    if (!data?.roomId) {
-      const error = new NotFoundException('Room ID not provided');
-      const response = CoreApiResponse.error(error.getResponse());
-      this.server.to(client.id).emit('error', response);
-      return client.disconnect();
-    }
+    // if (!data?.roomId) {
+    //   const error = new NotFoundException('Room ID not provided');
+    //   const response = CoreApiResponse.error(error.getResponse());
+    //   this.server.to(client.id).emit('error', response);
+    //   return client.disconnect();
+    // }
 
     const existConsultation = await this.prisma.consultation.findFirst({
       where: {
