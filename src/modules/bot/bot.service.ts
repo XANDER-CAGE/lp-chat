@@ -84,14 +84,17 @@ export class BotService {
       },
     });
 
-    if (getNotAssignBookingClient?.id) {
-      await this.prisma.consultationBooking.update({
-        where: { id: getNotAssignBookingClient.id },
-        data: {
-          operatorId: operator.id,
-        },
-      });
-      const existBooking = await this.checkOperatorBookingTime(operator);
+    return this.prisma.$transaction(async (trx) => {
+      if (getNotAssignBookingClient?.id) {
+        await trx.consultationBooking.update({
+          where: { id: getNotAssignBookingClient.id },
+          data: {
+            operatorId: operator.id,
+          },
+        });
+      }
+
+      const existBooking = await this.checkOperatorBookingTime(operator, trx);
 
       if (existBooking) {
         return ctx.reply(`You have a booking at ${existBooking.start_time}. Please be prepared.`, {
@@ -107,25 +110,25 @@ export class BotService {
           },
         });
       }
-    }
 
-    if (operator.shiftStatus == 'active') {
-      ctx.reply(`You've already activated your status`);
-      return;
-    }
+      if (operator.shiftStatus == 'active') {
+        ctx.reply(`You've already activated your status`);
+        return;
+      }
 
-    await this.prisma.shift.create({
-      data: { status: 'active', operatorId: operator.id },
+      await trx.shift.create({
+        data: { status: 'active', operatorId: operator.id },
+      });
+
+      await trx.user.update({
+        where: { id: operator.id, isDeleted: false },
+        data: { shiftStatus: 'active' },
+      });
+
+      this.chatService.getAllActiveOperators();
+
+      return await ctx.reply(`You've activated your status`);
     });
-
-    await this.prisma.user.update({
-      where: { id: operator.id, isDeleted: false },
-      data: { shiftStatus: 'active' },
-    });
-
-    this.chatService.getAllActiveOperators();
-
-    return await ctx.reply(`You've activated your status`);
   }
 
   async commandEnd(ctx: Context) {
@@ -1184,7 +1187,8 @@ export class BotService {
     });
   }
 
-  async checkOperatorBookingTime(operator: user) {
+  async checkOperatorBookingTime(operator: user, trx = null) {
+    trx = trx || this.prisma;
     const [operatorBooking]: {
       booking_id: string;
       user_id: string;
