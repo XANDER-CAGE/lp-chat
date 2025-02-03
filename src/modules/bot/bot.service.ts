@@ -74,22 +74,6 @@ export class BotService {
       return ctx.reply('You have active chat');
     }
 
-    if (operator.shiftStatus == 'active') {
-      ctx.reply(`You've already activated your status`);
-      return;
-    }
-
-    await this.prisma.shift.create({
-      data: { status: 'active', operatorId: operator.id },
-    });
-
-    await this.prisma.user.update({
-      where: { id: operator.id, isDeleted: false },
-      data: { shiftStatus: 'active' },
-    });
-
-    this.chatService.getAllActiveOperators();
-
     const getNotAssignBookingClient = await this.prisma.consultationBooking.findFirst({
       where: {
         operatorId: { not: null },
@@ -124,6 +108,22 @@ export class BotService {
         });
       }
     }
+
+    if (operator.shiftStatus == 'active') {
+      ctx.reply(`You've already activated your status`);
+      return;
+    }
+
+    await this.prisma.shift.create({
+      data: { status: 'active', operatorId: operator.id },
+    });
+
+    await this.prisma.user.update({
+      where: { id: operator.id, isDeleted: false },
+      data: { shiftStatus: 'active' },
+    });
+
+    this.chatService.getAllActiveOperators();
 
     return await ctx.reply(`You've activated your status`);
   }
