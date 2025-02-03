@@ -847,8 +847,6 @@ export class BotService {
       },
     });
 
-    console.log('keldi', consultation.id);
-
     return this.socketGateWay.sendMessageByOperatorViaSocket(consultation?.id, message);
   }
 
@@ -892,7 +890,6 @@ export class BotService {
     await this.fileService.downloadToStatic(file.id);
     const filename = `${file.id}${extname(file.name)}`;
     const inputFile = new InputFile(pathToStatic + filename);
-    console.log('inputFIle', inputFile);
 
     await this.bot.api.sendDocument(tgUserId, inputFile, {
       reply_parameters: replyParams,
