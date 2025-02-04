@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { StreamClient } from '@stream-io/node-sdk';
 import * as dotenv from 'dotenv';
+import { env } from 'src/common/config/env.config';
 
 dotenv.config();
 
@@ -9,10 +10,9 @@ export class StreamService {
   private client: StreamClient;
 
   constructor() {
-    const apiKey = process.env.STREAM_API_KEY || 'yazkey39jvhy';
+    const apiKey = env.STREAM_API_KEY || 'yazkey39jvhy';
     const secret =
-      process.env.STREAM_SECRET ||
-      '236hq65ucbfxkp9k496mmc8k37y7qanvv692a7wh32v2tffaq9mc8m22e8gpf943';
+      env.STREAM_SECRET || '236hq65ucbfxkp9k496mmc8k37y7qanvv692a7wh32v2tffaq9mc8m22e8gpf943';
     this.client = new StreamClient(apiKey, secret);
   }
 
