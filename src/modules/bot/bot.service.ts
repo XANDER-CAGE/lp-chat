@@ -125,7 +125,7 @@ export class BotService {
         data: { shiftStatus: 'active' },
       });
 
-      this.chatService.getAllActiveOperators();
+      this.chatService.getAllActiveOperators(trx);
 
       return await ctx.reply(`You've activated your status`);
     });

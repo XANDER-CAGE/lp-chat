@@ -698,8 +698,9 @@ export class ChatService {
     return { activeChat, messages };
   }
 
-  async getAllActiveOperators() {
-    const data: any[] = await this.prisma.$queryRaw`
+  async getAllActiveOperators(trx = null) {
+    trx = trx || this.prisma;
+    const data: any[] = await trx.$queryRaw`
         select chu.id,
                chu.shift_status,
                chu.user_id,
