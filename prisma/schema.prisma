@@ -31,7 +31,6 @@ model file {
 model downloadHistory {
   id        String   @id @default(dbgenerated("generate_object_id()")) @db.VarChar(24)
   userId    String?  @map("user_id") @db.VarChar(24)
-  doctorId  String?  @map("doctor_id") @db.VarChar(24)
   fileId    String   @map("file_id") @db.VarChar(24)
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
 
