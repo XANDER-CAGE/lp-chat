@@ -9,6 +9,7 @@ export function messagesQuery(prisma: PrismaClient, { clientId, operatorId, cons
                 m."updated_at" AS "updatedAt",
                 m.type         AS "type",
                 m.rate         AS "rate",
+                m.call_duration AS "callDuration",
                 CASE
                     WHEN a.id IS NULL AND a.firstname IS NULL AND a.lastname IS NULL AND a."user_id" IS NULL AND
                          a."doctor_id" IS NULL THEN NULL
