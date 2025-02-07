@@ -58,9 +58,9 @@ model message {
   acceptDoctorId   String?       @map("accept_doctor_id")
   acceptDoctor     doctor?       @relation(fields: [acceptDoctorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   transaction      transactions? @relation(fields: [transactionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  rate        Int?    @map("rate")
-  rateComment String? @map("rate_comment")
+  callDuration     Float?        @map("call_duration")
+  rate             Int?          @map("rate")
+  rateComment      String?       @map("rate_comment")
 
   isDeleted Boolean   @default(false) @map("is_deleted")
   // Timestamps

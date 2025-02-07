@@ -22,6 +22,7 @@ import { CoreApiResponse } from 'src/common/response-class/core-api.response';
 import { UserService } from '../user/user.service';
 import { ChatService } from './chat.service';
 import { ConsultationStatus } from './enum';
+import { CreateMessageDto } from './dto/message.dto';
 
 @Injectable()
 @WebSocketGateway({
@@ -146,7 +147,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('message')
-  async sendMessageHandle(@MessageBody() data: any, @ConnectedSocket() client: any) {
+  async sendMessageHandle(@MessageBody() data: CreateMessageDto, @ConnectedSocket() client: any) {
     if (!client?.consultationId) {
       const error = new NotFoundException('Consultation not found or already closed');
       const data = CoreApiResponse.error(error.getResponse());

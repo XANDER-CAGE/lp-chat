@@ -81,6 +81,7 @@ export class ChatService {
           type: mes.type,
           transactionId: mes.transactionId,
           rate: mes.rate || null,
+          callDuration: mes.callDuration || null,
           repliedMessageId: mes.repliedMessageId,
           createdAt: mes.createdAt,
         },

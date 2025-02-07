@@ -30,6 +30,7 @@ export class MessageDto {
   @IsEnum(MessageTypeEnum, { each: true })
   type: MessageTypeEnum;
 
+  @ApiPropertyOptional()
   @ApiProperty()
   @IsOptional()
   @IsString()
@@ -55,11 +56,16 @@ export class MessageDto {
   transactionId?: string;
 
   @ApiPropertyOptional()
-  @IsOptional()
   @IsNumber()
   @IsNotEmpty()
   @ValidateIf((x) => x.type == MessageTypeEnum.Rate)
   rate?: number;
+
+  @ApiPropertyOptional()
+  @IsNumber()
+  @IsNotEmpty()
+  @ValidateIf((x) => x.type == MessageTypeEnum.Call)
+  callDuration?: number;
 }
 
 export class CreateMessageDto {
