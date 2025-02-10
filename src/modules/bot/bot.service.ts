@@ -791,18 +791,18 @@ export class BotService {
       throw new NotFoundException('Active or new consultation not found');
     }
 
-    const repliedMessageTgId = ctx.update?.message?.reply_to_message?.message_id;
     const tgMessageId = ctx.update?.message?.message_id;
-    let repliedMessageId: string;
+    // let repliedMessageId: string;
 
-    if (repliedMessageTgId) {
-      const repliedMessage = await this.prisma.message.findFirst({
-        where: { tgMsgId: repliedMessageTgId.toString(), isDeleted: false },
-      });
-      repliedMessageId = repliedMessage?.id || null;
-    }
+    // const repliedMessageTgId = ctx.update?.message?.reply_to_message?.message_id;
+    // if (repliedMessageTgId) {
+    //   const repliedMessage = await this.prisma.message.findFirst({
+    //     where: { tgMsgId: repliedMessageTgId.toString(), isDeleted: false },
+    //   });
+    //   repliedMessageId = repliedMessage?.id || null;
+    // }
 
-    const content = caption || ctx.message?.text || null;
+    const content = ctx.message?.text || caption || null;
 
     if (content && !file?.fileId) {
       messageType = MessageTypeEnum.Text;
@@ -818,7 +818,7 @@ export class BotService {
         chatId: activeChat.id,
         content,
         fileId: file?.fileId,
-        repliedMessageId,
+        // repliedMessageId,
         tgMsgId: tgMessageId.toString(),
         type: messageType,
       },
