@@ -704,21 +704,24 @@ export class ChatService {
   async getAllActiveOperators(trx = null) {
     trx = trx || this.prisma;
     const data: any[] = await trx.$queryRaw`
-        select chu.id,
-               chu.shift_status,
-               chu.user_id,
-               chu.doctor_id,
-               chu.firstname,
-               chu.phone,
-               to_json(ct.*) as transaction_info
-        from chat."user" as chu
-                 left join consultation.transactions as ct
-                           on ct.operator_id = chu.id and ct.status = 0 and ct.expires_at <= now()
-        where chu.is_deleted is false
-          and ct.id is null
-          and doctor_id is not null
-          and chu.shift_status = 'active'
-        order by chu.last_chat_accept_date desc
+            SELECT chu.id,
+                  chu.shift_status,
+                  chu.user_id,
+                  chu.doctor_id,
+                  chu.firstname,
+                  chu.lastname
+                  chu.phone
+            FROM chat."user" AS chu
+            WHERE chu.is_deleted IS FALSE
+              AND chu.doctor_id IS NOT NULL
+              AND chu.shift_status = 'active'
+              AND NOT EXISTS (SELECT 1
+                              FROM consultation.transactions AS ct
+                              WHERE ct.operator_id = chu.id
+                                AND ct.status = 0
+                                AND ct.expires_at >= NOW())
+            ORDER BY chu.last_chat_accept_date DESC;
+
     `;
 
     this.socket.sendActiveOperatorsViaSocket(data || []);
