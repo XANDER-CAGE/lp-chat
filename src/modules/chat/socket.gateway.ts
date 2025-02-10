@@ -58,7 +58,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       const result = await this.userService.validate(jwt);
-      if (!result.success) throw new UnauthorizedException();
+      if (!result?.success) throw new UnauthorizedException();
 
       const exitConsultation = await this.prisma.consultation.findFirst({
         where: { id: consultationId },
