@@ -333,7 +333,7 @@ export class ChatService {
           chat.topic.name,
         );
 
-        await this.getAllActiveOperators();
+        await this.getAllActiveOperators(trx);
 
         return {
           success: true,
@@ -395,6 +395,8 @@ export class ChatService {
         user,
         trx,
       );
+
+      await this.getAllActiveOperators(trx);
 
       return { consultation, transaction };
     });
