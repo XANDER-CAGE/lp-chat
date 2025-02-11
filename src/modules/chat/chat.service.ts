@@ -709,7 +709,7 @@ export class ChatService {
                   chu.user_id,
                   chu.doctor_id,
                   chu.firstname,
-                  chu.lastname
+                  chu.lastname,
                   chu.phone
             FROM chat."user" AS chu
             WHERE chu.is_deleted IS FALSE
