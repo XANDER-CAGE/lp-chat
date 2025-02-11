@@ -10,6 +10,7 @@ import { BotService } from './bot.service';
 import { IUser } from 'src/common/interface/my-req.interface';
 import { StopConsultationAndChatDto } from '../chat/dto/chat.dto';
 import { objectId } from 'src/common/util/formate-message.util';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class BotHttpService {
@@ -279,5 +280,44 @@ export class BotHttpService {
       this.socketGateWay.sendRestoreCalculateOrderTimeViaSocket({ operatorId: operator.id });
       return this.socketGateWay.disconnectChatMembers(recentChat?.consultationId);
     });
+  }
+
+  async checkAndNotifyInactiveChats() {
+    const activeChats = await this.prisma.chat.findMany({
+      where: {
+        status: 'active',
+      },
+      include: {
+        operator: {
+          select: {
+            telegramId: true,
+          },
+          where: {
+            telegramId: { not: null },
+            doctorId: { not: null },
+            approvedAt: { not: null },
+          },
+        },
+        client: true,
+      },
+    });
+
+    const operatorIds = activeChats.map((chat) => chat.operator?.telegramId);
+
+    for (const chat of activeChats) {
+      if (chat.operator?.telegramId) {
+        await this.bot.api.sendMessage(
+          chat.operator.telegramId,
+          `You have an active chat with ${chat?.client?.firstname} ${chat?.client?.lastname}. Please respond promptly and conclude the conversation to update your status to inactive.`,
+        );
+      }
+    }
+
+    return operatorIds;
+  }
+
+  @Cron('0 0/5 18-23,0-8 * * *')
+  async handleCron() {
+    await this.checkAndNotifyInactiveChats();
   }
 }
