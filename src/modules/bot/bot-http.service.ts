@@ -316,7 +316,9 @@ export class BotHttpService {
     return operatorIds;
   }
 
-  @Cron('0 0/5 18-23,0-8 * * *')
+  @Cron('0 0/5 13-18,0-3 * * *', {
+    timeZone: 'Asia/Tashkent',
+  })
   async handleCron() {
     await this.checkAndNotifyInactiveChats();
   }
