@@ -10,7 +10,7 @@ import { BotService } from './bot.service';
 import { IUser } from 'src/common/interface/my-req.interface';
 import { StopConsultationAndChatDto } from '../chat/dto/chat.dto';
 import { objectId } from 'src/common/util/formate-message.util';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class BotHttpService {
