@@ -77,13 +77,17 @@ export class UserService {
         throw new NotFoundException('User not found');
 
       // Check if a user already exists based on userId or doctorId
-      let existingUser: any = await this.prisma.user.findFirst({
-        where: {
-          userId: content?.userType === 'user' ? content?.id : null,
-          doctorId: content?.userType === 'doctor' ? content?.id : null,
-          isDeleted: false,
-        },
-      });
+      let existingUser: any;
+
+      if (content?.userType === 'doctor') {
+        existingUser = await this.prisma.user.findFirst({
+          where: { doctorId: content.id, isDeleted: false, userId: { not: null } },
+        });
+      } else if (content?.userType === 'user') {
+        existingUser = await this.prisma.user.findFirst({
+          where: { userId: content.id, isDeleted: false, doctorId: { not: null } },
+        });
+      }
 
       if (!existingUser) {
         // Create a new user
