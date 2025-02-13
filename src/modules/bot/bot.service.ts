@@ -2,7 +2,7 @@ import { InjectBot } from '@grammyjs/nestjs';
 import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Bot, Context, InputFile, Keyboard } from 'grammy';
 import { PrismaService } from '../prisma/prisma.service';
-import { file, shiftStatus, user } from '@prisma/client';
+import { chatstatus, file, shiftStatus, user } from '@prisma/client';
 import { FileService } from '../file/file.service';
 import { extname } from 'path';
 import { getFileUrl } from 'src/common/util/get-tg-file-url.util';
@@ -15,6 +15,7 @@ import { SocketGateway } from '../chat/socket.gateway';
 import { ConsultationStatus, MessageTypeEnum } from '../chat/enum';
 import { existDoctorInfo } from '../prisma/query';
 import { ChatService } from '../chat/chat.service';
+import * as moment from 'moment';
 
 @Injectable()
 export class BotService {
@@ -59,6 +60,7 @@ export class BotService {
         isDeleted: false,
       },
     });
+
     if (!operator) {
       return ctx.reply('Please /register and (or) wait administrator to approve');
     }
@@ -66,7 +68,7 @@ export class BotService {
     const chat = await this.prisma.chat.findFirst({
       where: {
         operatorId: operator.id,
-        status: 'active',
+        status: chatstatus.active,
       },
     });
 
@@ -84,6 +86,23 @@ export class BotService {
       },
     });
 
+    const existBooking = await this.checkOperatorBookingTime(operator);
+
+    if (existBooking) {
+      return ctx.reply(`You have a booking at ${existBooking.start_time}. Please be prepared.`, {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: "I'm Ready",
+                callback_data: `get_booking$${existBooking.booking_id}`,
+              },
+            ],
+          ],
+        },
+      });
+    }
+
     return this.prisma.$transaction(async (trx) => {
       if (getNotAssignBookingClient?.id) {
         await trx.consultationBooking.update({
@@ -92,37 +111,40 @@ export class BotService {
             operatorId: operator.id,
           },
         });
+
+        const existBooking = await this.checkOperatorBookingTime(operator, trx);
+
+        if (existBooking) {
+          return ctx.reply(
+            `You have a booking at ${existBooking.start_time}. Please be prepared.`,
+            {
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    {
+                      text: "I'm Ready",
+                      callback_data: `get_booking$${existBooking.booking_id}`,
+                    },
+                  ],
+                ],
+              },
+            },
+          );
+        }
       }
 
-      const existBooking = await this.checkOperatorBookingTime(operator, trx);
-
-      if (existBooking) {
-        return ctx.reply(`You have a booking at ${existBooking.start_time}. Please be prepared.`, {
-          reply_markup: {
-            inline_keyboard: [
-              [
-                {
-                  text: "I'm Ready",
-                  callback_data: `get_booking$${existBooking.booking_id}`,
-                },
-              ],
-            ],
-          },
-        });
-      }
-
-      if (operator.shiftStatus == 'active') {
+      if (operator.shiftStatus == shiftStatus.active) {
         ctx.reply(`You've already activated your status`);
         return;
       }
 
       await trx.shift.create({
-        data: { status: 'active', operatorId: operator.id },
+        data: { status: shiftStatus.active, operatorId: operator.id },
       });
 
       await trx.user.update({
         where: { id: operator.id, isDeleted: false },
-        data: { shiftStatus: 'active' },
+        data: { shiftStatus: shiftStatus.active },
       });
 
       this.chatService.getAllActiveOperators(trx);
@@ -160,8 +182,6 @@ export class BotService {
       data: { shiftStatus: shiftStatus.inactive },
     });
 
-    this.chatService.getAllActiveOperators();
-
     const existBooking = await this.checkOperatorBookingTime(operator);
 
     if (existBooking) {
@@ -178,6 +198,8 @@ export class BotService {
         },
       });
     }
+
+    this.chatService.getAllActiveOperators();
 
     return await ctx.reply(`You've inactivated your status`);
   }
@@ -1131,7 +1153,6 @@ export class BotService {
       where: {
         telegramId: ctx.from.id.toString(),
         approvedAt: { not: null },
-        // shiftStatus: 'inactive',
       },
     });
 
@@ -1144,10 +1165,6 @@ export class BotService {
         reply_markup: {
           inline_keyboard: [
             [
-              // {
-              //   text: 'View Booking Details',
-              //   callback_data: `view_booking$${existBooking.booking_id}`,
-              // },
               {
                 text: "I'm Ready",
                 callback_data: `get_booking$${existBooking.booking_id}`,
@@ -1243,8 +1260,25 @@ export class BotService {
       return ctx.reply('Please /register and (or) wait for the administrator to approve');
     }
 
+    const activeConsultationAndChat = await this.prisma.consultation.findFirst({
+      where: {
+        operatorId: operator.id,
+        status: ConsultationStatus.IN_PROGRESS,
+        chatId: { not: null },
+      },
+      include: { chat: true },
+    });
+
+    if (activeConsultationAndChat?.chat?.status === chatstatus.active) {
+      return ctx.reply('You already have an active chat.');
+    }
+
+    if (!activeConsultationAndChat) {
+      return ctx.reply('You have no active chat');
+    }
+
     const booking = await this.prisma.consultationBooking.findFirst({
-      where: { id: bookingId },
+      where: { id: bookingId, operatorId: operator.id, status: 'new' },
       select: { id: true, consultationId: true, startTime: true, status: true },
     });
 
@@ -1253,7 +1287,7 @@ export class BotService {
     }
 
     const consultation = await this.prisma.consultation.findFirst({
-      where: { id: booking?.consultationId },
+      where: { id: booking?.consultationId, status: ConsultationStatus.NEW, chatId: { not: null } },
     });
 
     if (!consultation) {
@@ -1262,6 +1296,11 @@ export class BotService {
 
     const getClient = await this.prisma.user.findFirst({
       where: { userId: consultation.userId, isDeleted: false, doctorId: null },
+      include: {
+        userChats: {
+          where: { status: chatstatus.active, isDeleted: false, operatorId: null },
+        },
+      },
     });
 
     if (!getClient) {
@@ -1279,7 +1318,7 @@ export class BotService {
 
     const now = new Date();
     const bookingStartTime = booking.startTime!;
-    if (bookingStartTime > now) {
+    if (bookingStartTime >= now) {
       const timeDifference = bookingStartTime.getTime() - now.getTime();
       const hoursLeft = Math.floor(timeDifference / (1000 * 60 * 60));
       const minutesLeft = Math.floor((timeDifference % (1000 * 60 * 60)) / (1000 * 60));
@@ -1301,9 +1340,12 @@ export class BotService {
         ],
       };
 
-      return ctx.reply(`You have a booking scheduled at ${booking.startTime}. ${timeMessage}`, {
-        reply_markup: inlineKeyboard,
-      });
+      return ctx.reply(
+        `You have a booking scheduled at ${moment(booking.startTime).zone(5)}. ${timeMessage}`,
+        {
+          reply_markup: inlineKeyboard,
+        },
+      );
     }
 
     const existDoctorWithQuery: any = await existDoctorInfo(this.prisma, operator?.doctorId);

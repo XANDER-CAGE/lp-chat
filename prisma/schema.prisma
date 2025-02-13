@@ -175,15 +175,16 @@ model chat {
   rejectedOperators rejectedChat[]
   messagesToDelete  messageToDelete[] @ignore
 
-  isDeleted Boolean   @default(false) @map("is_deleted")
+  isDeleted    Boolean       @default(false) @map("is_deleted")
   // Timestamps
-  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
-  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+  deletedAt    DateTime?     @map("deleted_at") @db.Timestamptz
+  createdAt    DateTime?     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime?     @default(now()) @map("updated_at") @db.Timestamptz
   // User IDs
-  deletedBy String?   @map("deleted_by") @db.VarChar(24)
-  createdBy String?   @map("created_by") @db.VarChar(24)
-  updatedBy String?   @map("updated_by") @db.VarChar(24)
+  deletedBy    String?       @map("deleted_by") @db.VarChar(24)
+  createdBy    String?       @map("created_by") @db.VarChar(24)
+  updatedBy    String?       @map("updated_by") @db.VarChar(24)
+  consultation consultation?
 
   @@map("chat")
   @@schema("chat")
@@ -284,6 +285,8 @@ model consultation {
   comment       String?   @map("comment")
   // topicId       String?   @map("topic_id")
   chatStartedAt DateTime? @map("chat_started_at")
+
+  chat chat? @relation(fields: [chatId], references: [id])
 
   @@map("consultations")
   @@schema("consultation")
