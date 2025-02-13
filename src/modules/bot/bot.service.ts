@@ -1265,12 +1265,8 @@ export class BotService {
       include: { chat: true },
     });
 
-    if (activeConsultationAndChat?.chat?.status === chatstatus.active) {
-      return ctx.reply('You already have an active chat.');
-    }
-
-    if (!activeConsultationAndChat) {
-      return ctx.reply('You have no active chat');
+    if (activeConsultationAndChat?.chat?.status == chatstatus.active) {
+      return ctx.reply('You already have an active chat. You cannot take this booking.');
     }
 
     const booking = await this.prisma.consultationBooking.findFirst({
