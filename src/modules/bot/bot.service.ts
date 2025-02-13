@@ -74,7 +74,7 @@ export class BotService {
 
     const getNotAssignBookingClient = await this.prisma.consultationBooking.findFirst({
       where: {
-        operatorId: { not: null },
+        operatorId: null,
         status: 'new',
       },
       orderBy: {
@@ -100,7 +100,7 @@ export class BotService {
     }
 
     return this.prisma.$transaction(async (trx) => {
-      if (getNotAssignBookingClient?.id) {
+      if (getNotAssignBookingClient?.id && !existBooking) {
         await trx.consultationBooking.update({
           where: { id: getNotAssignBookingClient.id },
           data: {
