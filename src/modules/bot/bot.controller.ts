@@ -44,30 +44,10 @@ export class BotController {
     await this.botService.commandQueue(ctx);
   }
 
-  // @Command('stop')
-  // async commandStop(@Ctx() ctx: Context) {
-  //   await this.botService.commandStop(ctx);
-  // }
-
-  // @CallbackQuery('stop')
-  // async callbackStop(@Ctx() ctx: Context) {
-  //   await this.botService.commandStop(ctx);
-  // }
-
   @Command('register')
   async commandRegister(@Ctx() ctx: Context) {
     await this.botService.register(ctx);
   }
-
-  // @Command('stopdialog')
-  // async stopDialogCommand(@Ctx() ctx: Context) {
-  //   await this.botService.stopDialogAndTakeNextQueue(ctx);
-  // }
-
-  // @Command('stopdialog')
-  // async stopDialogCallback(@Ctx() ctx: Context) {
-  //   await this.botService.stopDialogAndTakeNextQueue(ctx);
-  // }
 
   @Command('getbooking')
   async commandGetBooking(@Ctx() ctx: Context) {

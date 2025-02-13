@@ -35,10 +35,6 @@ export class BotService {
       { command: 'offline', description: "I'm not available for new clients ❌" },
       { command: 'queue', description: 'Connecting to a client in the queue 🚶‍♂️🚶‍♀️' },
       { command: 'getbooking', description: 'Get your booking details 📅' },
-      {
-        command: 'stopdialog',
-        description: 'Stop the current dialog 🛑',
-      },
     ];
     await this.bot.api.setMyCommands(commands);
     ctx.reply(`Hey, ${ctx.from.first_name}. I'm ${this.bot.botInfo.first_name}`, {
