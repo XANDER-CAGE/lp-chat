@@ -86,6 +86,11 @@ export class BotService {
     const existBooking = await this.checkOperatorBookingTime(operator);
 
     if (existBooking) {
+      await this.prisma.user.update({
+        where: { id: operator.id },
+        data: { shiftStatus: shiftStatus.inactive },
+      });
+
       return ctx.reply(`You have a booking at ${existBooking.start_time}. Please be prepared.`, {
         reply_markup: {
           inline_keyboard: [
@@ -112,6 +117,11 @@ export class BotService {
         const existBooking = await this.checkOperatorBookingTime(operator, trx);
 
         if (existBooking) {
+          await this.prisma.user.update({
+            where: { id: operator.id },
+            data: { shiftStatus: shiftStatus.inactive },
+          });
+
           return ctx.reply(
             `You have a booking at ${existBooking.start_time}. Please be prepared.`,
             {
