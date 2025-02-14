@@ -75,7 +75,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
 
       this.server.in(socket.id).socketsJoin(consultationId.toString());
-      // console.log('join', socket.id);
+      console.log('join', socket.id);
     } catch (error) {
       console.error('Error in handleConnection:', error.message);
       const errResponse = CoreApiResponse.error(
@@ -87,7 +87,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   async handleDisconnect(socket: Socket): Promise<void> {
-    // console.log(`Socket disconnected: ${socket.id}`);
+    console.log(`Socket disconnected: ${socket.id}`);
   }
 
   sendMessageByOperatorViaSocket(consultationId: string, message: any) {

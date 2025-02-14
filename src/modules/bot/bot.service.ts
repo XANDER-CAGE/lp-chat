@@ -43,6 +43,7 @@ export class BotService {
           [{ callback_data: 'register', text: 'Register' }],
           [{ callback_data: 'online', text: 'Online' }],
           [{ callback_data: 'offline', text: 'Offline' }],
+          [{ callback_data: 'stopdialog', text: 'Stop Dialog' }],
         ],
       },
     });
@@ -955,6 +956,7 @@ export class BotService {
       parse_mode: 'MarkdownV2',
       reply_parameters: replyParameters,
     });
+
     await trx.message.update({
       where: { id: message.id },
       data: { tgMsgId: messageFromTg.message_id.toString() },

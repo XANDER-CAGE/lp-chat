@@ -14,6 +14,16 @@ export class BotController {
     await this.botService.onStart(ctx);
   }
 
+  @Command('stopdialog')
+  async stopDialog(@Ctx() ctx: Context): Promise<void> {
+    await this.botService.stopDialog(ctx);
+  }
+
+  @CallbackQuery('stopdialog')
+  async callbackStopDialog(@Ctx() ctx: Context) {
+    await this.botService.stopDialog(ctx);
+  }
+
   @CallbackQuery('online')
   async callbackLaunch(@Ctx() ctx: Context) {
     await this.botService.commandStart(ctx);
